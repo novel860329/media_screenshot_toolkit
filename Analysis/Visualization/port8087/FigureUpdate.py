@@ -348,20 +348,20 @@ def EventFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_lay
     has_exist = []
     for x_axis, shape_events in x_dict.items():
         event = FindImgEvent(shape_events)
-        print(x_axis, shape_events, event)
+        # print(x_axis, shape_events, event)
         event_candidate_index = []
         for j, layout_img in enumerate(stacked_fig.layout['images']):
             if layout_img['x'] == x_axis: 
                 if j not in event_candidate_index:
                     event_candidate_index.append(j)
-                    print("event_candidate_index", j)
+                    # print("event_candidate_index", j)
                 if x_axis not in has_exist:
                     has_exist.append(x_axis)
-                    print("has_exist", x_axis)
+                    # print("has_exist", x_axis)
 
         event_candidate_index = sorted(event_candidate_index)
-        print("sorted list: ", event_candidate_index)
-        print("has_exist list: ", has_exist)
+        # print("sorted list: ", event_candidate_index)
+        # print("has_exist list: ", has_exist)
 
         if x_axis in has_exist:
             for j in event_candidate_index:

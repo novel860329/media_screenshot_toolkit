@@ -32,6 +32,7 @@ import os
 import cv2
 import base64
 from PIL import ImageColor
+import dash_bootstrap_components as dbc
 import json
 from CreateImage import draw_visible_area
 from FigureUpdate import CombineFigUpdate
@@ -152,52 +153,64 @@ coding_layout = html.Div(className="row", children=[
             ])
             , style={'width': '10%', 'display': 'inline-block', 'vertical-align':'top','margin-left': '10px', 'margin-top': '10px'}
         ),
-        
+
         html.Div([
-            html.Div([
-                html.Button('Combine', id='Merge_button', n_clicks=0, style={"margin-left": "20px"}),
-                html.Button('Delete', id='Delete_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Split', id='Split_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Comment', id='Comment_button', n_clicks=0, style={"margin-left": "10px", "margin-top": "5px"}),
-                html.Button('External Link', id='Click_button', n_clicks=0, style={"margin-left": "10px", "margin-top": "5px"}),
-                html.Button('News', id='News_button', n_clicks=0, style={"margin-left": "10px", "margin-top": "5px"}),                 
+            html.Button('Combine', id='Merge_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Delete', id='Delete_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Split', id='Split_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('News', id='News_button', n_clicks=0, style={"margin-left": "10px"}),
+        ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '10px'}),
+
+        html.Details([
+            html.Summary('Facebook events'),          
+            html.Div([                               
+                html.Button('Comment', id='Comment_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('External Link', id='Click_button', n_clicks=0, style={"margin-left": "10px"}),           
+                html.Button('Like', id='Like_button', n_clicks=0, style={"margin-left": "10px"}),                 
+                html.Button('Typing', id='Typing_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('Share', id='Share_button', n_clicks=0, style={"margin-left": "10px"}),     
             ]),            
-        ], style={'display': 'inline-block', 'vertical-align':'top','margin-left': '10px', 'margin-top': '10px'}),
+        ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
+
+        html.Details([
+            html.Summary('Instagram events'),
+            html.Div([
+                html.Button('Comment', id='Comment2_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('External Link', id='Click2_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('Like', id='Like2_button', n_clicks=0, style={"margin-left": "10px"}),                 
+                html.Button('Typing', id='Typing2_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('Share', id='Share2_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('Story', id='Story2_button', n_clicks=0, style={"margin-left": "10px"}),     
+            ]),            
+        ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
+
+        html.Details([
+            html.Summary('Youtube events'),
+            html.Div([
+                html.Button('Comment', id='Comment3_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('Watch', id='Watch3_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('Typing', id='Typing3_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('Click on video', id='Click3_button', n_clicks=0, style={"margin-left": "10px"}),     
+            ]),            
+        ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
 
         html.Div(
             html.Div([
-                html.P(id="button_result", style={'fontSize':16}),
-            ])
-            , style={'display': 'inline-block', 'vertical-align':'top','margin-left': '10px', 'margin-top': '10px'}
-        ),
-
-        html.Div(
-            html.Div([
-                html.P(id="accuracy"),
-            ])
-            , style={'display': 'none', 'vertical-align':'bottom','margin-left': '20px', 'margin-top': '10px'}
+                html.P("Discuss Reason：", style={'fontSize':18}),
+                dcc.Input(
+                    id='Discuss_text',
+                    type='text',
+                    style={'width':'100px'}
+                ),
+                html.Button('Record', id='Discuss_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('Previous Step', id='Recovery_button', n_clicks=0, style={"margin-left": "20px"}),
+                dcc.Download( id="download_file"),
+                html.Button('Output File', id='Output_file', n_clicks=0, style={"margin-left": "10px"}), 
+                html.B(id="button_result", style={'fontSize':16, "margin-left": "10px"}),
+            ], style={'display': 'flex', 'flex-direction': 'row','margin-left': '10px', 'margin-top': '10px'}),           
         ),
     ]),
-    html.Div(
-        html.Div([
-            html.P("Discuss Reason：", style={'fontSize':18}),
-        ]),
-        style={'display': 'inline-block','margin-left': '10px', 'margin-top': '10px'}
-    ),
-    html.Div(
-        html.Div([
-            dcc.Input(
-                id='Discuss_text',
-                type='text',
-                style={'width':'200px'}
-            ),
-            html.Button('Record the reason', id='Discuss_button', n_clicks=0, style={"margin-left": "10px"}),
-            html.Button('Resume Previous Step', id='Recovery_button', n_clicks=0, style={"margin-left": "20px"}),
-            dcc.Download( id="download_file"),
-            html.Button('Output File', id='Output_file', n_clicks=0, style={"margin-left": "10px"}), 
-        ])
-        , style={ 'display': 'inline-block','margin-left': '10px', 'margin-top': '10px'}
-    ),
+    
     html.Div(
         dcc.Link('Go to coding mode', href='/coding')
     ,style={'display': 'none', 'vertical-align':'bottom','margin-left': '20px', 'margin-top': '10px'}),
@@ -434,7 +447,7 @@ def draw_barchart(df, sliderrange):
         picture_number = row['picture_number']
         x_dict[int(picture_number) + 0.4].append(shape_2)
     for x_axis, shape_events in x_dict.items():
-        event = FindImgEvent(shape_events) 
+        event = FindImgEvent(shape_events)
         if event != "post":
             fig.add_layout_image(
                     x=x_axis,
@@ -997,13 +1010,6 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
                 stacked_dataframe = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "/" + previous_path, engine='python')            
             os.remove(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "/" + now_path)
             
-            # if stacked_layout is None:
-            #     stacked_fig = draw_barchart(stacked_dataframe, None)
-            # elif 'xaxis.range' in stacked_layout:
-            #     stacked_fig = draw_barchart(stacked_dataframe, [stacked_layout['xaxis.range'][0], stacked_layout['xaxis.range'][1]])
-            # else:
-            #     stacked_fig = draw_barchart(stacked_dataframe, None)
-            
             if os.path.exists(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json"): 
                 with open(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json") as f:
                     history = json.load(f)
@@ -1039,7 +1045,7 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
                 elif action == "Discussion":
                     stacked_fig = DiscussFigUpdate(stacked_fig, stacked_dataframe, row_number_list, stacked_layout)
                 elif action == "Comment" or action == "External link" or action == "News":
-                    stacked_fig = EventFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_layout)
+                    stacked_fig = EventFigUpdate(stacked_fig, stacked_dataframe, row_number_list, stacked_layout)
 
                 return msg, stacked_fig, dash.no_update, history[global_user] , columns
                 
