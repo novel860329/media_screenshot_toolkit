@@ -26,6 +26,7 @@ import io
 from collections import defaultdict
 from textwrap import dedent as s
 from PIL import Image
+from test_for_split import load_keywords, cut_compare
 import re
 import copy
 import os
@@ -54,7 +55,7 @@ def extract_time_from_answer(answer):
 
 
 #----- config ------
-ROOT_PATH = 'D:/Users/MUILab-VR/Desktop/News Consumption/CHI2022/'
+ROOT_PATH = 'D:/Users/MUILab-VR/Desktop/News Consumption/'
 data_path = ROOT_PATH + "Analysis/Visualization/data/"
 
 global_user = 0
@@ -146,50 +147,62 @@ coding_layout = html.Div(className="row", children=[
             ])
             , style={'width': '10%', 'display': 'inline-block', 'vertical-align':'top','margin-left': '10px', 'margin-top': '10px'}
         ),        
-        html.Div([
-            html.Div([
-                html.Button('Combine', id='Merge_button', n_clicks=0, style={"margin-left": "20px"}),
-                html.Button('Delete', id='Delete_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Split', id='Split_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Comment', id='Comment_button', n_clicks=0, style={"margin-left": "10px", "margin-top": "5px"}),
-                html.Button('External Link', id='Click_button', n_clicks=0, style={"margin-left": "10px", "margin-top": "5px"}),
-                html.Button('News', id='News_button', n_clicks=0, style={"margin-left": "10px", "margin-top": "5px"}),                 
+         html.Div([
+            html.Button('Combine', id='Merge_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Delete', id='Delete_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Split', id='Split_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('News', id='News_button', n_clicks=0, style={"margin-left": "10px"}),
+        ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '10px'}),
+
+        html.Details([
+            html.Summary('Facebook events'),          
+            html.Div([                               
+                html.Button('Comment', id='Comment_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('External Link', id='Click_button', n_clicks=0, style={"margin-left": "10px"}),           
+                html.Button('Like', id='Like_button', n_clicks=0, style={"margin-left": "10px"}),                 
+                html.Button('Typing', id='Typing_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('Share', id='Share_button', n_clicks=0, style={"margin-left": "10px"}),     
             ]),            
-        ], style={'display': 'inline-block', 'vertical-align':'top','margin-left': '10px', 'margin-top': '10px'}),
+        ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
+
+        html.Details([
+            html.Summary('Instagram events'),
+            html.Div([
+                html.Button('Comment', id='Comment2_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('External Link', id='Click2_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('Like', id='Like2_button', n_clicks=0, style={"margin-left": "10px"}),                 
+                html.Button('Typing', id='Typing2_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('Share', id='Share2_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('Story', id='Story2_button', n_clicks=0, style={"margin-left": "10px"}),     
+            ]),            
+        ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
+
+        html.Details([
+            html.Summary('Youtube events'),
+            html.Div([
+                html.Button('Comment', id='Comment3_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('Watch', id='Watch3_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('Typing', id='Typing3_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('Click on video', id='Click3_button', n_clicks=0, style={"margin-left": "10px"}),     
+            ]),            
+        ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
 
         html.Div(
             html.Div([
-                html.P(id="button_result", style={'fontSize':16}),
-            ])
-            , style={'display': 'inline-block', 'vertical-align':'top','margin-left': '10px', 'margin-top': '10px'}
-        ),
-        html.Div(
-            html.Div([
-                html.P(id="accuracy"),
-            ])
-            , style={'display': 'none', 'vertical-align':'bottom','margin-left': '20px', 'margin-top': '10px'}
+                html.P("Discuss Reason：", style={'fontSize':18}),
+                dcc.Input(
+                    id='Discuss_text',
+                    type='text',
+                    style={'width':'100px'}
+                ),
+                html.Button('Record', id='Discuss_button', n_clicks=0, style={"margin-left": "10px"}),
+                html.Button('Previous Step', id='Recovery_button', n_clicks=0, style={"margin-left": "20px"}),
+                dcc.Download( id="download_file"),
+                html.Button('Output File', id='Output_file', n_clicks=0, style={"margin-left": "10px"}), 
+                html.B(id="button_result", style={'fontSize':16, "margin-left": "10px"}),
+            ], style={'display': 'flex', 'flex-direction': 'row','margin-left': '10px', 'margin-top': '10px'}),           
         ),
     ]),
-    html.Div(
-        html.Div([
-            html.P("Discuss Reason：", style={'fontSize':18}),
-        ]),
-        style={'display': 'inline-block','margin-left': '10px', 'margin-top': '10px'}
-    ),
-    html.Div(
-        html.Div([
-            dcc.Input(
-                id='Discuss_text',
-                type='text',
-                style={'width':'200px'}
-            ),
-            html.Button('Record the reason', id='Discuss_button', n_clicks=0, style={"margin-left": "10px"}),
-            html.Button('Resume Previous Step', id='Recovery_button', n_clicks=0, style={"margin-left": "20px"}),
-            dcc.Download( id="download_file"),
-            html.Button('Output File', id='Output_file', n_clicks=0, style={"margin-left": "10px"}), 
-        ])
-        , style={ 'display': 'inline-block','margin-left': '10px', 'margin-top': '10px'}
-    ),
     html.Div(
         dcc.Link('Go to coding mode', href='/coding')
     ,style={'display': 'none', 'vertical-align':'bottom','margin-left': '20px', 'margin-top': '10px'}),

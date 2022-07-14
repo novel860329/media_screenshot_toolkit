@@ -68,13 +68,14 @@ data_path = ROOT_PATH + "Analysis/Visualization/data/"
 # data_preprocess()
 
 global_user = 0
-event_list = ["external link", 'comment', "news", "external&news", "comment&news"]
+event_list = ["news", "external link", 'comment', "external&news", "comment&news"]
 source = {'post':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/comment.png"),
         'news':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/news.png"),
         'external link':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/link.png"),
         'external&news':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/link.png"),
         'comment':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/comment.png"),
         'comment&news':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/comment.png")}
+event_map = {0: 'external link', 1: 'comment', 2: 'news'}
 scatter_layout = []
 stacked_layout = []
 prev_selection = []
@@ -388,20 +389,24 @@ def draw_barchart(df, sliderrange):
         news = scatter_dataframe['news'][i]
 
         event = "comment&news"
-        shape_2 = int(str(comment) + str(link) + str(news), 2)
+        shape_2 = int(str(news) + str(comment) + str(link), 2)
 
-        if shape_2 == 4:
+        if shape_2 == 2:
             event = "comment"
-        elif shape_2 == 2:
-            event = "external link"
         elif shape_2 == 1:
+            event = "external link"
+        elif shape_2 == 4:
             event = "news"
-        elif shape_2 == 5:
+        elif shape_2 == 6:
             event = "comment&news"
-        elif shape_2 == 3:
+        elif shape_2 == 5:
             event = "external&news"
         elif shape_2 == 0:
             event = "post"
+        elif shape_2 == 3:
+            event = "external&comment"
+        else:
+            event = "all event"
 
         if prev_img != img:
             non_visual_costomdata = [code_id, detect_time, qid, row_index, picture_number]
@@ -441,33 +446,27 @@ def draw_barchart(df, sliderrange):
         prev_img = img
 
     x_dict = defaultdict(list)
-    for i, row in scatter_dataframe.iterrows():
-        shape_2 = int(str(row['comment']) + str(row['outer_link']) + str(row['news']), 2)
-        row_index = row['row_index']
+    for j, row in scatter_dataframe.iterrows():
+        shape_2 = int(str(row['news']) + str(row['comment']) + str(row['outer_link']), 2)
+        # row_index = row['row_index']
         picture_number = row['picture_number']
         x_dict[int(picture_number) + 0.4].append(shape_2)
     for x_axis, shape_events in x_dict.items():
-        event = FindImgEvent(shape_events)
-        if event != "post":
-            fig.add_layout_image(
-                    x=x_axis,
-                    y=1.1,
-                    source=source[event],
-                    xref="x",
-                    yref="y",
-                    sizex=0.6,
-                    sizey=0.6,
-                    xanchor="center",
-                    yanchor="middle",
-                    sizing="contain",
-                    layer="above",
-                    visible=True,
-                )
-            if event == "comment&news" or event == "external&news":
+        shape = FindImgEvent(shape_events)
+        shape_bin = bin(shape)[2:][::-1]
+        binary1_index = []
+        for j, binary in enumerate(shape_bin):
+            if binary == '1':
+                binary1_index.append(j)
+
+        if shape != 0:
+            y_axis = 1.1
+            for j in range(len(binary1_index)):
+                event = event_map[binary1_index[j]]
                 fig.add_layout_image(
                         x=x_axis,
-                        y=1.25,
-                        source=source["news"],
+                        y=y_axis,
+                        source=source[event],
                         xref="x",
                         yref="y",
                         sizex=0.6,
@@ -478,6 +477,7 @@ def draw_barchart(df, sliderrange):
                         layer="above",
                         visible=True,
                     )
+                y_axis += 0.15
     fig.update_layout(
         barmode="stack",
         uniformtext=dict(mode="hide", minsize=10),
@@ -491,7 +491,7 @@ def draw_barchart(df, sliderrange):
         dragmode='select'
     )
 
-    fig.update_yaxes(showticklabels=False, range=[0,1.35])
+    fig.update_yaxes(showticklabels=False, range=[0,1.5])
     fig.update(layout = go.Layout(margin=dict(t=0,r=0,b=0,l=0)))
     qid_list = scatter_dataframe['qid'].tolist()
     post_list = scatter_dataframe['picture_number'].tolist()
@@ -508,22 +508,8 @@ def FindImgEvent(events):
     
     for event in events:
         shape = shape | event
-    if shape == 0:
-        event = "post"
-    elif shape == 4:
-        event = "comment"
-    elif shape == 2:
-        event = "external link"
-    elif shape == 1:
-        event = "news"
-    elif shape == 5:
-        event = "comment&news"
-    elif shape == 3:
-        event = "external&news"
-    else :
-        event = "comment&news"
 
-    return event
+    return shape
 
 @callback(
     Output('img-content', 'children'),
