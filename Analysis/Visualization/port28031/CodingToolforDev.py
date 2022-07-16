@@ -120,7 +120,7 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 
 app = Dash(__name__, external_stylesheets=external_stylesheets, suppress_callback_exceptions=True)
 
-client = MongoClient("mongodb://Hua:Wahahaha443@127.0.0.1:27017/newscons?authSource=admin")
+client = MongoClient("mongodb://username:password@127.0.0.1:27017/newscons?authSource=admin")
 mydb = client['visualtool']
 
 server = app.server
