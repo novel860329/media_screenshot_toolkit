@@ -9,30 +9,16 @@ import dash
 import dash_auth
 from dash import callback_context, Dash, dcc, html, Input, Output, callback, dash_table
 from dash.dependencies import State
-from matplotlib.cbook import Stack
 import plotly.graph_objs as go
 import pandas as pd
-import datetime as dt
-from flask import make_response
-from plotly.validators.scatter.marker import SymbolValidator
-import plotly.express as px
-import numpy as np
 import flask
 import datetime
-import calendar
-import time
-import io
 from collections import defaultdict
 from textwrap import dedent as s
 from PIL import Image
-from test_for_split import load_keywords, cut_compare
-import re
-import copy
 import os
 import cv2
 import base64
-from PIL import ImageColor
-import dash_bootstrap_components as dbc
 import json
 from CreateImage import draw_visible_area
 from FigureUpdate import CombineFigUpdate
@@ -40,6 +26,10 @@ from FigureUpdate import DeleteFigUpdate
 from FigureUpdate import SplitFigUpdate
 from FigureUpdate import DiscussFigUpdate
 from FigureUpdate import EventFigUpdate
+from DB_operation import GetDataframe
+from DB_operation import GetHistory
+from DB_operation import SaveDataframe
+from DB_operation import SaveHistory
 
 # from CoderDataPreprocessingforDev import data_preprocess
 
@@ -62,7 +52,9 @@ def extract_time_from_answer(answer):
     return date + " " + time
 
 #----- config ------
-ROOT_PATH = 'D:/Users/MUILab-VR/Desktop/News Consumption/'
+# ubuntu path = "/home/ubuntu/News Consumption/"
+# windows path = "D:/Users/MUILab-VR/Desktop/News Consumption/"
+ROOT_PATH = "D:/Users/MUILab-VR/Desktop/News Consumption/CHI2022/media_screenshot_toolkit/"
 data_path = ROOT_PATH + "Analysis/Visualization/data/"
 
 # data_preprocess()
@@ -258,76 +250,6 @@ coding_layout = html.Div(className="row", children=[
     html.P(id='placeholder'),
     html.P(id='ph_for_select')
 ])
-
-def RecordHistory(user, row_index_list, action):
-    if os.path.exists(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json"): 
-        with open(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json") as f:
-            history = json.load(f)
-            if user in history:
-                history_user = history[user]
-                if history_user != []:
-                    current_step = int(history_user[0]["Correction step"]) + 1
-                    now_time = datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                    history_user.insert(0, {"Time": now_time, "Correction step":str(current_step), "Row number": ",".join(str(e) for e in row_index_list), "Button click": action})
-                    history[user] = history_user
-                else:
-                    now_time = datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                    history[user] = [{"Time": now_time, "Correction step":"1", "Row number": ",".join(str(e) for e in row_index_list), "Button click": action}]
-            else:
-                now_time = datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-                history[user] = [{"Time": now_time, "Correction step":"1", "Row number": ",".join(str(e) for e in row_index_list), "Button click": action}]
-        with open(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json", "w") as f:
-            json.dump(history, f)
-    else:
-        with open(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json", "w") as f:
-            now_time = datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-            history = {user:[{"Time": now_time, "Correction step":"1", "Row number": ",".join(str(e) for e in row_index_list), "Button click": action}]}
-            json.dump(history, f)
-    columns = [{'name': col, 'id': col} for col in history_column]
-    return history[user], columns
-
-def BarChart_Preprocessing(df):
-    facebook_color = ["rgba(2,22,105,1)",  "rgba(5,61,180,1)", 
-                    "rgba(0,68,255,1)", "rgba(4,134,219,1)", "rgba(64, 187, 213,1)",
-                    "rgba(87,226,255,1)", "rgba(135,206,255,1)", "rgba(46, 180, 237,1)"]
-    youtube_color = ["rgba(255, 20, 147,1)",  "rgba(248, 0, 0,1)", "rgba(255, 100, 0,1)",
-                    "rgba(255, 150, 0,1)", "rgba(255, 126, 106,1)", "rgba(204, 75, 101,1)",
-                     "rgba(205, 140, 149,1)", "rgba(202, 9, 53,1)"]
-    instagram_color = ["rgba(139, 0, 139,1)",  "rgba(85, 26, 139,1)", "rgba(115, 35, 189,1)",
-                      "rgba(171, 156, 255,1)", "rgba(213, 172, 255,1)", "rgba(255, 187, 255,1)"]
-    All_color = facebook_color + youtube_color + instagram_color
-    
-    max_postID = df['code_id'].max()
-    color_scale_dict = {}
-    for i in range(max_postID):
-        color = facebook_color[i % len(facebook_color)]
-        color_scale_dict[i + 1] = color
-        
-    fig_dataframe = []    
-    pic_num = 0
-    for index in range(len(df)):
-        image = df.at[index, 'images']
-        if image not in fig_dataframe: #一篇貼文的第一張照片
-            pic_num += 1 
-            df.loc[index, 'picture_number'] = pic_num 
-            fig_dataframe.append(image)
-        else:
-            df.loc[index, 'picture_number'] = pic_num  
-    
-    fig_dataframe = []
-    df_seperate = []
-    
-    scatter_dataframe = pd.DataFrame(columns=df.columns)
-    for dataf in df_seperate:
-        scatter_dataframe = scatter_dataframe.append(dataf, ignore_index=True)
-    df = df.reset_index(drop=True)
-
-    for index in range(len(df)):
-        df.at[index, 'color'] = color_scale_dict[df.at[index, 'code_id']]
-
-    df["code_id"] = df["code_id"].astype(str)
-    print("end BarChart_Preprocessing")
-    return df
 
 def nonvisual_bottombar(picture_number, non_visual_costomdata):
     bottom_bar = go.Bar(
@@ -543,11 +465,8 @@ def update_image(stacked_hover, userid, button_result):
             picture_number = int(hoverData['points'][0]['customdata'][4])
 
     ### used for searching comment and outer_link value
-    stacked_file_path = sorted(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + userid))[-1]
-    try:
-        cache = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + userid + "/" + stacked_file_path, encoding="utf_8_sig")
-    except:
-        cache = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + userid + "/" + stacked_file_path, engine='python')
+    cache = GetDataframe(global_user, port_file)
+
     max_picture_number = int(cache['picture_number'].max())
 
     picture_range = [0, 0]
@@ -687,7 +606,11 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
 
         Select_row_index = sorted(Select_row_index)
 
+        max_data_index = len(stacked_fig.data) - 1
+
         for i in prev_selection:
+            if i > max_data_index:
+                continue
             if i not in bar_list:
                 stacked_fig.data[i].marker.line.width = 0
 
@@ -722,15 +645,32 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
         stacked_layout = stacked_relayout
     
     if (uid == '' or uid is None) and global_user == 0: #最一開始開這個網頁的時候
-        return "Choose one user number", dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        fig = {
+            "layout": {
+                "xaxis": {
+                    "visible": False
+                },
+                "yaxis": {
+                    "visible": False
+                },
+                "annotations": [
+                    {
+                        "text": "No data found",
+                        "xref": "paper",
+                        "yref": "paper",
+                        "showarrow": False,
+                        "font": {
+                            "size": 24
+                        }
+                    }
+                ]
+            }
+        }
+        return "Choose one user number", fig, dash.no_update, dash.no_update, dash.no_update
     elif (uid == '' or uid is None) and global_user != 0 and global_user != "": #從visual mode回來的時後
         msg = 'Select some bars to start'
-        stacked_file_path = sorted(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user))[-1]
 
-        try:
-            stacked_dataframe = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "/" + stacked_file_path, encoding="utf_8_sig")
-        except:
-            stacked_dataframe = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "/" + stacked_file_path, engine='python')
+        stacked_dataframe = GetDataframe(global_user, port_file)
 
         if stacked_layout is None: 
             stacked_fig = draw_barchart(stacked_dataframe, None)
@@ -739,48 +679,72 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
         else:
             stacked_fig = draw_barchart(stacked_dataframe, None)
         
-        if os.path.exists(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json"): 
-            f = open(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json")
-            history = json.load(f)
-            columns = [{'name': col, 'id': col} for col in history_column]
-            if global_user in history:
-                return msg, stacked_fig, global_user, history[global_user], columns
-            else:
-                return msg, stacked_fig, global_user, [{}], columns
-        else:
-            columns = [{'name': col, 'id': col} for col in history_column]
-            return msg, stacked_fig, global_user, [{}], columns
+        Record_table, columns = GetHistory(global_user, port_file)
+        # if os.path.exists(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json"): 
+        #     f = open(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json")
+        #     history = json.load(f)
+        #     columns = [{'name': col, 'id': col} for col in history_column]
+        #     if global_user in history:
+        #         return msg, stacked_fig, global_user, history[global_user], columns
+        #     else:
+        #         return msg, stacked_fig, global_user, [{}], columns
+        # else:
+        #     columns = [{'name': col, 'id': col} for col in history_column]
+        return msg, stacked_fig, global_user, Record_table, columns
     
     if uid != '' and uid is not None:
         global_user = uid
     if global_user != 0 and global_user != "":
-        if len(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user)) != 0:
-            stacked_file_path = sorted(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user))[-1]
-            try:
-                stacked_dataframe = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "/" + stacked_file_path, encoding="utf_8_sig")
-            except:
-                stacked_dataframe = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "/" + stacked_file_path, engine='python')
-        else:
-            try:
-                scatter_df = pd.read_csv(data_path + global_user + ".csv", encoding="utf_8_sig")
-            except:
-                scatter_df = pd.read_csv(data_path + global_user + ".csv", engine='python')
-            # real data
-            scatter_df = scatter_df.drop(scatter_df[scatter_df.code_id == -2].index)
-            scatter_df = scatter_df.drop(columns=['n_main', 'keyword', 'picture_number'])
-            scatter_df['code_id'] = scatter_df['code_id'].apply(lambda x:int(x) + 1)
-            scatter_df.reset_index(inplace=True,drop=True)
+        stacked_dataframe = GetDataframe(global_user, port_file)
 
-            stacked_dataframe = copy.deepcopy(scatter_df)
-            stacked_dataframe['detect_time'] = stacked_dataframe[image_appeared].apply(lambda x:extract_time_from_answer(x))
-            stacked_dataframe['row_index'] = stacked_dataframe.index
-            stacked_dataframe['visible time'] = 0
-            stacked_dataframe['discuss'] = 0
-            stacked_dataframe['discuss_reason'] = " "
-            stacked_dataframe = BarChart_Preprocessing(stacked_dataframe)
+        # if len(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user)) != 0:
+        #     stacked_file_path = sorted(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user))[-1]
+        #     try:
+        #         stacked_dataframe = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "/" + stacked_file_path, encoding="utf_8_sig")
+        #     except:
+        #         stacked_dataframe = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "/" + stacked_file_path, engine='python')
+        # else:
+        #     try:
+        #         scatter_df = pd.read_csv(data_path + global_user + ".csv", encoding="utf_8_sig")
+        #     except:
+        #         scatter_df = pd.read_csv(data_path + global_user + ".csv", engine='python')
+        #     # real data
+        #     scatter_df = scatter_df.drop(scatter_df[scatter_df.code_id == -2].index)
+        #     scatter_df = scatter_df.drop(columns=['n_main', 'keyword', 'picture_number'])
+        #     scatter_df['code_id'] = scatter_df['code_id'].apply(lambda x:int(x) + 1)
+        #     scatter_df.reset_index(inplace=True,drop=True)
+
+        #     stacked_dataframe = copy.deepcopy(scatter_df)
+        #     stacked_dataframe['detect_time'] = stacked_dataframe[image_appeared].apply(lambda x:extract_time_from_answer(x))
+        #     stacked_dataframe['row_index'] = stacked_dataframe.index
+        #     stacked_dataframe['visible time'] = 0
+        #     stacked_dataframe['discuss'] = 0
+        #     stacked_dataframe['discuss_reason'] = " "
+        #     stacked_dataframe = BarChart_Preprocessing(stacked_dataframe)
     else:
         columns = [{'name': col, 'id': col} for col in history_column]
-        return "Choose one user number", dash.no_update, global_user, [{}], columns
+        fig = {
+            "layout": {
+                "xaxis": {
+                    "visible": False
+                },
+                "yaxis": {
+                    "visible": False
+                },
+                "annotations": [
+                    {
+                        "text": "No data found",
+                        "xref": "paper",
+                        "yref": "paper",
+                        "showarrow": False,
+                        "font": {
+                            "size": 24
+                        }
+                    }
+                ]
+            }
+        }
+        return "Choose one user number", fig, global_user, [{}], columns
     
     stacked_dataframe.code_id = stacked_dataframe.code_id.astype(int)
 
@@ -803,12 +767,11 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
             i = stacked_dataframe[stacked_dataframe['picture_number'] == int(p_id)]['percent'].idxmax()
             stacked_dataframe.loc[i, 'color'] = ",".join(stacked_dataframe.loc[i, 'color'].split(",")[:3]) + ",1)"
 
-        timestamp = calendar.timegm(time.gmtime())
-        stacked_dataframe.to_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file  + "/" + global_user + "/_" + str(timestamp) + ".csv", encoding='utf_8_sig', index=False)
+        SaveDataframe(global_user, port_file, stacked_dataframe)
         
         stacked_fig = CombineFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_layout)
 
-        HistoryData, columns = RecordHistory(global_user, Select_row_index, "Combine")
+        HistoryData, columns = SaveHistory(global_user, port_file, Select_row_index, "Combine")
         
         return msg, stacked_fig, dash.no_update, HistoryData, columns
     elif 'Delete_button' in changed_id:
@@ -821,12 +784,11 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
         for row_index in Select_row_index:
             stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, 'visible time'] = -1
 
-        timestamp = calendar.timegm(time.gmtime())
-        stacked_dataframe.to_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file  + "/" + global_user + "/_" + str(timestamp) + ".csv", encoding='utf_8_sig', index=False)
+        SaveDataframe(global_user, port_file, stacked_dataframe)
 
         stacked_fig = DeleteFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_layout, False)
         
-        HistoryData, columns = RecordHistory(global_user, Select_row_index, "Delete")
+        HistoryData, columns = SaveHistory(global_user, port_file, Select_row_index, "Delete")
         return msg, stacked_fig, dash.no_update, HistoryData, columns
     elif 'Split_button' in changed_id:
         if Select_row_index == []:
@@ -913,10 +875,9 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
 
         stacked_fig = SplitFigUpdate(stacked_fig, stacked_dataframe, post_number, stacked_layout)
         
-        timestamp = calendar.timegm(time.gmtime())
-        stacked_dataframe.to_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file  + "/" + global_user + "/_" + str(timestamp) + ".csv", encoding='utf_8_sig', index=False)
+        SaveDataframe(global_user, port_file, stacked_dataframe)
 
-        HistoryData, columns = RecordHistory(global_user, Select_row_index, "Split")
+        HistoryData, columns = SaveHistory(global_user, port_file, Select_row_index, "Split")
         return msg, stacked_fig, dash.no_update, HistoryData, columns
 
     elif 'Discuss_button' in changed_id:
@@ -934,9 +895,9 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
 
         stacked_fig = DiscussFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_layout)
 
-        timestamp = calendar.timegm(time.gmtime())
-        stacked_dataframe.to_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file  + "/" + global_user + "/_" + str(timestamp) + ".csv", encoding='utf_8_sig', index=False)
-        HistoryData, columns = RecordHistory(global_user, Select_row_index, "Discussion")
+        SaveDataframe(global_user, port_file, stacked_dataframe)
+
+        HistoryData, columns = SaveHistory(global_user, port_file, Select_row_index, "Discussion")
         return msg, stacked_fig, dash.no_update, HistoryData, columns
 
     elif 'Comment_button' in changed_id or 'Click_button' in changed_id or 'News_button' in changed_id:
@@ -972,17 +933,11 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
         # print("from_no_event_to_event", from_no_event_to_event)
         print(msg)
 
+        SaveDataframe(global_user, port_file, stacked_dataframe)
+
         stacked_fig = EventFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_layout)
 
-        timestamp = calendar.timegm(time.gmtime())
-        stacked_dataframe.to_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file  + "/" + global_user + "/_" + str(timestamp) + ".csv", encoding='utf_8_sig', index=False)
-        # if stacked_layout is None:
-        #     stacked_fig = draw_barchart(stacked_dataframe, None)
-        # elif 'xaxis.range' in stacked_layout:
-        #     stacked_fig = draw_barchart(stacked_dataframe, [stacked_layout['xaxis.range'][0], stacked_layout['xaxis.range'][1]])
-        # else:
-        #     stacked_fig = draw_barchart(stacked_dataframe, None)
-        HistoryData, columns = RecordHistory(global_user, Select_row_index, button_name)
+        HistoryData, columns = SaveHistory(global_user, port_file, Select_row_index, button_name)
         return msg, stacked_fig, dash.no_update, HistoryData, columns
     elif 'Recovery_button' in changed_id: 
         cache_file_list = sorted(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user))
@@ -1049,23 +1004,24 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
         stacked_fig = draw_barchart(stacked_dataframe, None)
 
         if len(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "")) == 0:
-            timestamp = calendar.timegm(time.gmtime())
-            stacked_dataframe.to_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file  + "/" + global_user + "/_" + str(timestamp) + ".csv", encoding='utf_8_sig', index=False)
+            SaveDataframe(global_user, port_file, stacked_dataframe)
         
         print(msg)
 
-        if os.path.exists(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json"): 
-            f = open(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json")
-            history = json.load(f)
-            columns = [{'name': col, 'id': col} for col in history_column]
-            if global_user in history:
-                return msg, stacked_fig, global_user, history[global_user], columns
-            else:
-                return msg, stacked_fig, global_user, [{}], columns
-        else:
-            print("No history")
-            columns = [{'name': col, 'id': col} for col in history_column]
-            return msg, stacked_fig, global_user, [{}], columns
+        Record_table, columns = GetHistory(global_user, port_file)
+
+        # if os.path.exists(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json"): 
+        #     f = open(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json")
+        #     history = json.load(f)
+        #     columns = [{'name': col, 'id': col} for col in history_column]
+        #     if global_user in history:
+        #         return msg, stacked_fig, global_user, history[global_user], columns
+        #     else:
+        #         return msg, stacked_fig, global_user, [{}], columns
+        # else:
+        #     print("No history")
+        #     columns = [{'name': col, 'id': col} for col in history_column]
+        return msg, stacked_fig, global_user, Record_table, columns
     elif 'Output_file' in changed_id:
         msg = global_user + " has been downloaded"
         return msg, dash.no_update, global_user, dash.no_update, dash.no_update
@@ -1094,34 +1050,31 @@ def RecordScatterLayout(scatter_relayout):
 def DownloadClick(uid, file_btn):
     changed_id = [p['prop_id'] for p in callback_context.triggered][0]
     if "Output_file" in changed_id:
-        stacked_file_path = sorted(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user))[-1]
-        
-        try:
-            stacked_dataframe = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "/" + stacked_file_path, encoding="utf_8_sig")
-        except:
-            stacked_dataframe = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "/" + stacked_file_path, engine='python')
-        # real data
+        stacked_dataframe = GetDataframe(global_user, port_file)
         stacked_dataframe = stacked_dataframe.drop(stacked_dataframe[(stacked_dataframe.code_id == -2) | (stacked_dataframe['visible time'] == -1)].index)
-        stacked_dataframe = stacked_dataframe.drop(columns=['percent', 'row_index', 'picture_number', 'color'])
-        scatter_dataframe = pd.DataFrame(columns=['user', 'qid', 'images', 'pid', 'context', 'visible time', 'post_number', 'comment', 'outer_link', 'discuss', 'discuss_reason'])
-        stacked_dataframe.code_id = stacked_dataframe.code_id.astype(int)
-        postID = stacked_dataframe['code_id'].unique()
-        for _id in postID: #把相同code id的接成同一列               
-            post = stacked_dataframe[stacked_dataframe['code_id'] == _id] 
-            comment = 1 if 1 in post['comment'].tolist() else 0
-            link =  1 if 1 in post['outer_link'].tolist() else 0
-            insert_list = [post['user'].iloc[0], post['qid'].iloc[0], '\n'.join(post['images'].tolist()), post['pid'].iloc[0], post['context'].iloc[0], len(post), _id, comment, link, post['discuss'].iloc[0], post['discuss_reason'].iloc[0]]
-            scatter_dataframe = scatter_dataframe.append(pd.DataFrame([insert_list], columns=scatter_dataframe.columns))
-        scatter_dataframe['app'] = scatter_dataframe[image_appeared].apply(lambda x:extract_app_name(x))   
-        scatter_dataframe['qid'] = scatter_dataframe["qid"].apply(lambda x:int(x))                
-        scatter_dataframe['detect_time'] = scatter_dataframe[image_appeared].apply(lambda x:extract_time_from_answer(x))
-        scatter_dataframe['date'] = scatter_dataframe['detect_time'].apply(lambda x:x.split(" ")[0])
-        output_df = copy.deepcopy(scatter_dataframe)
-        output_df = output_df.drop(columns=Extra_column)       
-        output_df = output_df.drop(output_df.loc[output_df['visible time'] == -1].index, inplace=False)
-        output_df = output_df.reset_index(drop=True)
 
-        return dcc.send_data_frame(output_df.to_excel, global_user + "_PostCodingData.xlsx", sheet_name="Sheet1")
+        # real data
+        # stacked_dataframe = stacked_dataframe.drop(stacked_dataframe[(stacked_dataframe.code_id == -2) | (stacked_dataframe['visible time'] == -1)].index)
+        # stacked_dataframe = stacked_dataframe.drop(columns=['percent', 'row_index', 'picture_number', 'color'])
+        # scatter_dataframe = pd.DataFrame(columns=['user', 'qid', 'images', 'pid', 'context', 'visible time', 'post_number', 'comment', 'outer_link', 'discuss', 'discuss_reason'])
+        # stacked_dataframe.code_id = stacked_dataframe.code_id.astype(int)
+        # postID = stacked_dataframe['code_id'].unique()
+        # for _id in postID: #把相同code id的接成同一列               
+        #     post = stacked_dataframe[stacked_dataframe['code_id'] == _id] 
+        #     comment = 1 if 1 in post['comment'].tolist() else 0
+        #     link =  1 if 1 in post['outer_link'].tolist() else 0
+        #     insert_list = [post['user'].iloc[0], post['qid'].iloc[0], '\n'.join(post['images'].tolist()), post['pid'].iloc[0], post['context'].iloc[0], len(post), _id, comment, link, post['discuss'].iloc[0], post['discuss_reason'].iloc[0]]
+        #     scatter_dataframe = scatter_dataframe.append(pd.DataFrame([insert_list], columns=scatter_dataframe.columns))
+        # scatter_dataframe['app'] = scatter_dataframe[image_appeared].apply(lambda x:extract_app_name(x))   
+        # scatter_dataframe['qid'] = scatter_dataframe["qid"].apply(lambda x:int(x))                
+        # scatter_dataframe['detect_time'] = scatter_dataframe[image_appeared].apply(lambda x:extract_time_from_answer(x))
+        # scatter_dataframe['date'] = scatter_dataframe['detect_time'].apply(lambda x:x.split(" ")[0])
+        # output_df = copy.deepcopy(scatter_dataframe)
+        # output_df = output_df.drop(columns=Extra_column)       
+        # output_df = output_df.drop(output_df.loc[output_df['visible time'] == -1].index, inplace=False)
+        # output_df = output_df.reset_index(drop=True)
+
+        return dcc.send_data_frame(stacked_dataframe.to_excel, global_user + "_PostCodingData.xlsx", sheet_name="Sheet1")
 
 @callback(
     Output('post_content', 'children'),
@@ -1149,11 +1102,8 @@ def update_content(stacked_hover, userid, result_btn):
         if global_user == None or global_user == 0:
             return dash.no_update
 
-        stacked_file_path = sorted(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user))[-1]
-        try:
-            cache = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "/" + stacked_file_path, encoding="utf_8_sig")
-        except:
-            cache = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "/" + stacked_file_path, engine='python')
+        cache = GetDataframe(global_user, port_file)
+
         content_split = cache.loc[cache['row_index'] == row_index]
         if content_split.empty:
             return dash.no_update
