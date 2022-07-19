@@ -1,5 +1,5 @@
-port8087: bar chart version
+port8087: bar chart version (version 1)：已完成90%，剩bar chart collapser不知道怎麼做
 
-port8090: image list version
+port8090: image list version (version 2)：使用者點選照片中的哪一則貼文，該如何實作?
 
-port28031: bar chart version with database
+port28031: bar chart version with database (modify version 1，performance較差)
