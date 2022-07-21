@@ -666,7 +666,8 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
                 ]
             }
         }
-        return "Choose one user number", fig, dash.no_update, dash.no_update, dash.no_update
+        columns = [{'name': col, 'id': col} for col in history_column]
+        return "Choose one user number", fig, dash.no_update, [{}], columns
     elif (uid == '' or uid is None) and global_user != 0 and global_user != "": #從visual mode回來的時後
         msg = 'Select some bars to start'
 

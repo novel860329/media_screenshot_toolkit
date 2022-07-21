@@ -3,7 +3,7 @@ from PIL import Image
 
 ROOT_PATH = 'D:/Users/MUILab-VR/Desktop/News Consumption/'
 
-event_list = ["external link", 'comment', "news", "external&news", "comment&news"]
+event_list = ["post", "external link", 'comment', "external&comment", "news", "external&news", "comment&news", "all event"]
 
 source = {'post':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/comment.png"),
         'news':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/news.png"),
@@ -67,7 +67,7 @@ def CombineFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_l
         detect_time = row['detect_time']
         qid = row['qid']
         row_index = row['row_index']
-        shape = int(str(row['comment']) + str(row['outer_link']) + str(row['news']), 2)
+        shape = int(str(row['news']) + str(row['comment']) + str(row['outer_link']), 2)
         event = FindImgEvent([shape])
 
         stacked_fig.data[index].update(
@@ -76,7 +76,7 @@ def CombineFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_l
             x=[int(picture_number)],
             marker=dict(color=color),
             offset=0,
-            customdata=[[code_id, detect_time, qid, row_index, picture_number, event]],
+            customdata=[[code_id, detect_time, qid, row_index, picture_number, event_list[event]]],
             hovertemplate="<br>".join([
                 "post_number=%{customdata[0]}",
                 "detect time=%{customdata[1]}",
@@ -147,7 +147,7 @@ def SplitFigUpdate(stacked_fig, stacked_dataframe, post_number, stacked_layout):
         detect_time = row['detect_time']
         qid = row['qid']
         row_index = row['row_index']
-        shape = int(str(row['comment']) + str(row['outer_link']) + str(row['news']), 2)
+        shape = int(str(row['news']) + str(row['comment']) + str(row['outer_link']), 2)
         event = FindImgEvent([shape])
 
         stacked_fig.data[index].update(
@@ -156,7 +156,7 @@ def SplitFigUpdate(stacked_fig, stacked_dataframe, post_number, stacked_layout):
             x=[int(picture_number)],
             marker=dict(color=color),
             offset=0,
-            customdata=[[code_id, detect_time, qid, row_index, picture_number, event]],
+            customdata=[[code_id, detect_time, qid, row_index, picture_number, event_list[event]]],
             # marker_pattern_shape=pattern_sahpe[shape],
             hovertemplate="<br>".join([
                 "post_number=%{customdata[0]}",
