@@ -600,7 +600,7 @@ def update_image(stacked_hover, userid, button_result):
         if cache.loc[(cache["images"] == img) & (cache["code_id"] == code_id), "comment"].shape[0] == 0:
             return dash.no_update
         # print(ROOT_PATH + userid + "/" + temp_path[0] + "/NewInterval/" + str(q_id) + "/" + img)
-        img_cv2 = cv2.imread(ROOT_PATH + userid + "/" + temp_path[0] + "/NewInterval/" + str(q_id) + "/" + img)
+        img_cv2 = cv2.imread(ROOT_PATH + userid + "/"  + str(q_id) + "/" + img)
         img_cv2 = draw_visible_area(img_cv2)
         _, buffer = cv2.imencode('.jpg', img_cv2)
         img_64 = base64.b64encode(buffer).decode('utf-8')

@@ -395,7 +395,7 @@ def update_image(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_bt
             q_id = stacked_dataframe[stacked_dataframe['images'] == image].iloc[0]['qid']
             uid = uid.split("-")[0] if "-" in uid else uid
             temp_path = os.listdir(ROOT_PATH + "/" + uid)
-            img_cv2 = cv2.imread(ROOT_PATH + uid + "/" + temp_path[0] + "/NewInterval/" + str(q_id) + "/" + image)
+            img_cv2 = cv2.imread(ROOT_PATH + uid + "/" + str(q_id) + "/" + image)
             height = img_cv2.shape[0]
             width = img_cv2.shape[1]
             img_cv2 = draw_visible_area(img_cv2)

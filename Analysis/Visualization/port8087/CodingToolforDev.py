@@ -505,7 +505,7 @@ def update_image(stacked_hover, userid, button_result):
         if cache.loc[(cache["images"] == img) & (cache["code_id"] == code_id), "comment"].shape[0] == 0:
             return dash.no_update
         # print(ROOT_PATH + userid + "/" + temp_path[0] + "/NewInterval/" + str(q_id) + "/" + img)
-        img_cv2 = cv2.imread(ROOT_PATH + userid + "/" + temp_path[0] + "/NewInterval/" + str(q_id) + "/" + img)
+        img_cv2 = cv2.imread(ROOT_PATH + userid + "/" + str(q_id) + "/" + img)
         img_cv2 = draw_visible_area(img_cv2)
         _, buffer = cv2.imencode('.jpg', img_cv2)
         img_64 = base64.b64encode(buffer).decode('utf-8')
@@ -763,10 +763,10 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
                 stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, 'color'] = BaseDataframe['color']
                 stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, 'code_id'] = BaseDataframe['code_id']
             post_number = stacked_dataframe[stacked_dataframe['row_index'] == row_index].iloc[0]['code_id']
-        update_color_dataframe = stacked_dataframe[stacked_dataframe['code_id'] == int(BaseDataframe['code_id'])]
-        for p_id in update_color_dataframe['picture_number'].tolist():
-            i = stacked_dataframe[stacked_dataframe['picture_number'] == int(p_id)]['percent'].idxmax()
-            stacked_dataframe.loc[i, 'color'] = ",".join(stacked_dataframe.loc[i, 'color'].split(",")[:3]) + ",1)"
+        # update_color_dataframe = stacked_dataframe[stacked_dataframe['code_id'] == int(BaseDataframe['code_id'])]
+        # for p_id in update_color_dataframe['picture_number'].tolist():
+        #     i = stacked_dataframe[stacked_dataframe['picture_number'] == int(p_id)]['percent'].idxmax()
+        #     stacked_dataframe.loc[i, 'color'] = ",".join(stacked_dataframe.loc[i, 'color'].split(",")[:3]) + ",1)"
 
         SaveDataframe(global_user, port_file, stacked_dataframe)
         

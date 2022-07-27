@@ -10,7 +10,7 @@ import numpy as np
 import cv2
 
 #----- config ------
-ROOT_PATH = 'D:/Users/MUILab-VR/Desktop/News Consumption/'
+ROOT_PATH = 'D:/Users/MUILab-VR/Desktop/News Consumption/CHI2022/media_screenshot_toolkit/'
 data_path = ROOT_PATH + "Database/SplitPostFile/"
 profile_path = ROOT_PATH + "Analysis/UserProfile/UserProfileForCode.csv"
 

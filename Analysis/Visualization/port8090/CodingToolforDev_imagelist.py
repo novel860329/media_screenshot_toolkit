@@ -86,7 +86,7 @@ questionnaire_id = "qid"
 image_appeared = "images"
 image_content = "context"
 visible_time = "visible time"
-port_number = 8090
+port_number = 8087
 stacked_fig = ""
 port_file = "port"+str(port_number) + "/" +"port_" + str(port_number)
 Select_post_num = []
@@ -294,7 +294,7 @@ def draw_barchart(df, sliderrange, uid):
     for i, image in enumerate(images):
         q_id = scatter_dataframe[scatter_dataframe['images'] == image].iloc[0]['qid']
         picture_number = scatter_dataframe[scatter_dataframe['images'] == image].iloc[0]['picture_number']       
-        img = Image.open(ROOT_PATH + uid + "/" + temp_path[0] + "/NewInterval/" + str(q_id) + "/" + image)
+        img = Image.open(ROOT_PATH + uid + "/" + str(q_id) + "/" + image)
         width, height = img.size
         y_size = height * image_width / width
         x_axis = picture_number + (int(picture_number) - 1) * image_width
