@@ -86,7 +86,7 @@ questionnaire_id = "qid"
 image_appeared = "images"
 image_content = "context"
 visible_time = "visible time"
-port_number = 8087
+port_number = 28031
 stacked_fig = ""
 port_file = "port"+str(port_number) + "/" +"port_" + str(port_number)
 Select_post_num = []
@@ -120,6 +120,8 @@ auth = dash_auth.BasicAuth(
 )
 
 col_cate = {'app':["Facebook", "Instagram", "Youtube", "PTT", "Messenger", "LineChat","googleNews" ,"LineToday", "NewsApp" ,"Chrome","-1"], '新聞主題':['生活','運動', '娛樂', '政治', '健康','-1']}
+
+repeat_post_color = ["rgba(255,0,0,1)", "rgba(0,255,0,1)", "rgba(0,0,255,1)"]
 
 for uid in User_data:
     try:
@@ -295,8 +297,23 @@ def draw_barchart(df, sliderrange):
 
     fig = go.Figure()
 
+    ### assign repeat post group color
+    repeat_post = scatter_dataframe['repeat'].unique().tolist()
+    repeat_post.remove(0)
+    repeat_post = sorted(repeat_post)
+    post_color = {}
+    color_index = 0
+    for i, post_id in enumerate(repeat_post):
+        if i >= len(repeat_post) - 1:
+            post_color[post_id] = repeat_post_color[color_index % len(repeat_post_color)]
+            continue
+        if repeat_post[i + 1] - repeat_post[i] > 1:
+            post_color[post_id] = repeat_post_color[color_index % len(repeat_post_color)]
+            color_index += 1
+        else:
+            post_color[post_id] = repeat_post_color[color_index % len(repeat_post_color)]
+
     prev_img = "none"
-    prev_shape = -1
     for i in range(len(scatter_dataframe) - 1, -1, -1):
         img = scatter_dataframe['images'][i] 
         code_id = scatter_dataframe['code_id'][i]  
@@ -309,6 +326,7 @@ def draw_barchart(df, sliderrange):
         comment = scatter_dataframe['comment'][i]
         link = scatter_dataframe['outer_link'][i]
         news = scatter_dataframe['news'][i]
+        repeat = scatter_dataframe['repeat'][i]
 
         event = "comment&news"
         shape_2 = int(str(news) + str(comment) + str(link), 2)
@@ -365,6 +383,26 @@ def draw_barchart(df, sliderrange):
             top_bar = nonvisual_topbar(picture_number, non_visual_costomdata)
             fig.add_trace(top_bar)
 
+        if repeat != 0 or code_id in post_color:
+            if repeat != 0:
+                post_index = repeat
+            elif code_id in post_color:
+                post_index = code_id
+            line = go.Scatter(x=[int(picture_number), int(picture_number) + 1], y=[1.35, 1.35],
+                    line=dict(color=post_color[post_index], width=4),
+                    name="-1",
+                    customdata=[[code_id, detect_time, qid, row_index, picture_number] for i in range(2)],
+                    mode='lines',
+                    hovertemplate="<br>".join([
+                        "Repeat post",
+                        "detect time=%{customdata[1]}",
+                        "questionnaire id=%{customdata[2]}",
+                        "row index=%{customdata[3]}", 
+                        "picture number=%{customdata[4]}", 
+                        ]),
+                    )
+            fig.add_trace(line)
+
         prev_img = img
 
     x_dict = defaultdict(list)
@@ -400,6 +438,41 @@ def draw_barchart(df, sliderrange):
                         visible=True,
                     )
                 y_axis += 0.15
+
+    ### add repeat post hint, framing by rectangle
+    # rectangle_point = []
+    # group_df = scatter_dataframe[(scatter_dataframe['repeat'] != 0) | (scatter_dataframe['code_id'].isin(repeat_post))]
+    # prev_repeat, prev_picture = -1, -1
+    # i = 0
+    # for j, row in group_df.iterrows():
+    #     picture_number = row['picture_number']
+    #     repeat = row['repeat']
+    #     code_id = row['code_id']
+    #     if repeat != 0:
+    #         post_index = repeat
+    #     elif code_id in repeat_post:
+    #         post_index = code_id
+    #     # print(i, post_index, picture_number)
+    #     if abs(post_index - prev_repeat) > 1 and abs(picture_number - prev_picture) > 1:
+    #         if i == 0:
+    #             rectangle_point.append((post_index, picture_number, 0))
+    #         else:
+    #             rectangle_point.append((prev_repeat, prev_picture + 0.8, 1.35))
+    #             rectangle_point.append((post_index, picture_number, 0))
+    #         i += 1
+    #     prev_repeat, prev_picture = post_index, picture_number
+    # rectangle_point.append((prev_repeat, prev_picture + 0.8, 1.35))
+    # # print(rectangle_point)
+
+    # for i in range(0, len(rectangle_point), 2):
+    #     color = post_color[rectangle_point[i][0]]
+    #     x0, y0 = rectangle_point[i][1], rectangle_point[i][2]
+    #     x1, y1 = rectangle_point[i + 1][1], rectangle_point[i + 1][2]
+    #     fig.add_shape(type="rect",
+    #         x0=x0, y0=y0, x1=x1, y1=y1,
+    #         line=dict(color=color),
+    #     )
+
     fig.update_layout(
         barmode="stack",
         uniformtext=dict(mode="hide", minsize=10),
@@ -505,8 +578,8 @@ def update_image(stacked_hover, userid, button_result):
         if cache.loc[(cache["images"] == img) & (cache["code_id"] == code_id), "comment"].shape[0] == 0:
             return dash.no_update
         # print(ROOT_PATH + userid + "/" + temp_path[0] + "/NewInterval/" + str(q_id) + "/" + img)
-        img_cv2 = cv2.imread(ROOT_PATH + userid + "/" + str(q_id) + "/" + img)
-        img_cv2 = draw_visible_area(img_cv2)
+        img_cv2 = cv2.imread(ROOT_PATH + userid + "/" + temp_path[0] + "/NewInterval/" + str(q_id) + "/" + img)
+        # img_cv2 = draw_visible_area(img_cv2)
         _, buffer = cv2.imencode('.jpg', img_cv2)
         img_64 = base64.b64encode(buffer).decode('utf-8')
 

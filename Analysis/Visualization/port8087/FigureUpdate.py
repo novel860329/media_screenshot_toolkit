@@ -1,7 +1,9 @@
 from collections import defaultdict
 from PIL import Image
 
-ROOT_PATH = 'D:/Users/MUILab-VR/Desktop/News Consumption/'
+# ubuntu path = "/home/ubuntu/News Consumption/"
+# windows path = "D:/Users/MUILab-VR/Desktop/News Consumption/"
+ROOT_PATH = 'D:/Users/MUILab-VR/Desktop/News Consumption/CHI2022/media_screenshot_toolkit/'
 
 event_list = ["post", "external link", 'comment', "external&comment", "news", "external&news", "comment&news", "all event"]
 
@@ -135,7 +137,7 @@ def SplitFigUpdate(stacked_fig, stacked_dataframe, post_number, stacked_layout):
         if trace['customdata'][0][0] not in event_list:
             row_id = trace['customdata'][0][3]
             code_id = trace['customdata'][0][0]
-            if trace['name'] != "-1" and code_id >= int(post_number):
+            if trace['name'] != "-1" and int(code_id) >= int(post_number):
                 update_fig_index.append(i)
     update_fig_index = sorted(update_fig_index, reverse=True)
 

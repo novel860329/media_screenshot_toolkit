@@ -12,14 +12,6 @@ history_column = ["Time", "Correction step", "Row number", "Button click"]
 columns = [{'name': col, 'id': col} for col in history_column]
 data_path = ROOT_PATH + "Analysis/Visualization/data/"
 
-facebook_color = ["rgba(2,22,105,1)",  "rgba(5,61,180,1)", 
-                    "rgba(0,68,255,1)", "rgba(4,134,219,1)", "rgba(64, 187, 213,1)",
-                    "rgba(87,226,255,1)", "rgba(135,206,255,1)", "rgba(46, 180, 237,1)"]
-youtube_color = ["rgba(255, 20, 147,1)",  "rgba(248, 0, 0,1)", "rgba(255, 100, 0,1)",
-                "rgba(255, 150, 0,1)", "rgba(255, 126, 106,1)", "rgba(204, 75, 101,1)",
-                "rgba(205, 140, 149,1)", "rgba(202, 9, 53,1)"]
-instagram_color = ["rgba(139, 0, 139,1)",  "rgba(85, 26, 139,1)", "rgba(115, 35, 189,1)",
-                    "rgba(171, 156, 255,1)", "rgba(213, 172, 255,1)", "rgba(255, 187, 255,1)"]
 def extract_app_name(images):
     image = images.split("\n")[0]
     img = image.split("-")
@@ -38,7 +30,14 @@ def extract_time_from_answer(answer):
     return date + " " + time
 
 def BarChart_Preprocessing(df):
-    
+    facebook_color = ["rgba(2,22,105,1)",  "rgba(5,61,180,1)", 
+                    "rgba(0,68,255,1)", "rgba(4,134,219,1)", "rgba(64, 187, 213,1)",
+                    "rgba(87,226,255,1)", "rgba(135,206,255,1)", "rgba(46, 180, 237,1)"]
+    youtube_color = ["rgba(255, 20, 147,1)",  "rgba(248, 0, 0,1)", "rgba(255, 100, 0,1)",
+                    "rgba(255, 150, 0,1)", "rgba(255, 126, 106,1)", "rgba(204, 75, 101,1)",
+                     "rgba(205, 140, 149,1)", "rgba(202, 9, 53,1)"]
+    instagram_color = ["rgba(139, 0, 139,1)",  "rgba(85, 26, 139,1)", "rgba(115, 35, 189,1)",
+                      "rgba(171, 156, 255,1)", "rgba(213, 172, 255,1)", "rgba(255, 187, 255,1)"]
     All_color = facebook_color + youtube_color + instagram_color
     
     max_postID = df['code_id'].max()
