@@ -294,14 +294,14 @@ def draw_barchart(df, sliderrange, uid):
     for i, image in enumerate(images):
         q_id = scatter_dataframe[scatter_dataframe['images'] == image].iloc[0]['qid']
         picture_number = scatter_dataframe[scatter_dataframe['images'] == image].iloc[0]['picture_number']       
-        img = Image.open(ROOT_PATH + uid + "/" + str(q_id) + "/" + image)
+        img = Image.open(ROOT_PATH + uid + "/" + temp_path[0] + "/NewInterval/" + str(q_id) + "/" + image)
         width, height = img.size
         y_size = height * image_width / width
         x_axis = picture_number + (int(picture_number) - 1) * image_width
 
         fig.add_layout_image(
             x=x_axis,
-            y=y_size/2,
+            y=y_size/2 - y_size*0.13,
             source=img,
             xref="x",
             yref="y",
@@ -347,26 +347,6 @@ def draw_barchart(df, sliderrange, uid):
             else:
                 event = "all event"
 
-            non_visual_costomdata = [code_id, detect_time, qid, row_index, picture_number]
-
-            if j == 0:
-                bottom_bar = go.Bar(
-                    name="-1",
-                    y=[y_size * 0.13],
-                    x=[x_axis],
-                    width=[image_width],
-                    marker=dict(color="rgba(180,180,180,0.8)"),
-                    customdata=[non_visual_costomdata],
-                    hovertemplate="<br>".join([
-                        "Non Visible Area",
-                        "detect time=%{customdata[1]}",
-                        "questionnaire id=%{customdata[2]}",
-                        "row index=%{customdata[3]}", 
-                        "picture number=%{customdata[4]}",                       
-                    ])
-                )
-                fig.add_trace(bottom_bar)
-
             bar = go.Bar(
                 name=str(code_id),
                 y=[y_size * percent],
@@ -390,24 +370,6 @@ def draw_barchart(df, sliderrange, uid):
             )
             fig.add_trace(bar)
 
-            if j == len(row_list) - 1:
-                top_bar = go.Bar(
-                    name="-1",
-                    y=[y_size * 0.13],
-                    x=[x_axis],
-                    width=[image_width],
-                    marker=dict(color="rgba(180,180,180,0.8)"),
-                    customdata=[non_visual_costomdata],
-                    hovertemplate="<br>".join([
-                        "Non Visible Area",
-                        "detect time=%{customdata[1]}",
-                        "questionnaire id=%{customdata[2]}",
-                        "row index=%{customdata[3]}", 
-                        "picture number=%{customdata[4]}"                
-                    ])
-                )
-                fig.add_trace(top_bar)
-
     x_dict = defaultdict(list)
     for j, row in scatter_dataframe.iterrows():
         shape_2 = int(str(row['news']) + str(row['comment']) + str(row['outer_link']), 2)
@@ -423,7 +385,7 @@ def draw_barchart(df, sliderrange, uid):
                 binary1_index.append(j)
 
         if shape != 0:
-            y_axis = y_size + 0.5
+            y_axis = y_size + 0.5 - y_size*0.13
             for j in range(len(binary1_index)):
                 event = event_map[binary1_index[j]]
                 fig.add_layout_image(

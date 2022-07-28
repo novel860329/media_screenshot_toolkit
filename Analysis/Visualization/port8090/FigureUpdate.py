@@ -1,7 +1,7 @@
 from collections import defaultdict
 from PIL import Image
 
-ROOT_PATH = "D:/Users/MUILab-VR/Desktop/News Consumption/CHI2022/media_screenshot_toolkit/"
+ROOT_PATH = 'D:/Users/MUILab-VR/Desktop/News Consumption/CHI2022/media_screenshot_toolkit/'
 
 event_list = ["post", "external link", 'comment', "external&comment", "news", "external&news", "comment&news", "all event"]
 
@@ -37,6 +37,7 @@ def UpdateFigureLayout(stacked_fig, stacked_layout):
             )
         )
     else:
+        print(stacked_fig.layout['images'])
         figure_x = int(stacked_fig.layout['images'][0]['x']),
         stacked_fig.update_layout(
             xaxis=dict(
@@ -297,7 +298,7 @@ def EventFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_lay
                 binary1_index.append(j)
         event_candidate_index = []
         for j, layout_img in enumerate(stacked_fig.layout['images']):
-            if layout_img['x'] == x_axis and layout_img['y'] >= y_size: 
+            if layout_img['x'] == x_axis and layout_img['y'] >= y_size - y_size*0.13: 
                 if j not in event_candidate_index:
                     event_candidate_index.append(j)
 
@@ -307,7 +308,7 @@ def EventFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_lay
             stacked_fig.layout['images'][j].visible = False
 
         if shape != 0:
-            y_axis = y_size + 0.5           
+            y_axis = y_size + 0.5 - y_size*0.13         
             for j in range(len(binary1_index)):
                 event = event_map[binary1_index[j]]
                 if j < len(event_candidate_index):

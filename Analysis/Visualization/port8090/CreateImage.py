@@ -70,20 +70,12 @@ def draw_visible_area(img):
         temp_img = img.copy()
         cv2.rectangle(temp_img, (width, bottom_pixel), (0, height), (128, 128, 128), -1)
         img = cv2.addWeighted(temp_img, alpha, img, 1 - alpha, 0)
-        # drawline(img, (0, top_pixel), (width, top_pixel), (0, 0, 255), 5, "other", 15)
-        # drawline(img, (0, bottom_pixel), (width, bottom_pixel), (0, 0, 255), 5, "other", 15)    
-        # top_pixel = height // 2
-        # drawline(img, (0, top_pixel), (width, top_pixel), (240, 240, 0), 5, "other", 15)   
     else:
         top_pixel = int(width * 0.13)
         bottom_pixel = width - int(width * 0.13)
 
         img = cv2.rectangle(img, (0, 0), (width, top_pixel), (128, 128, 128), -1)
-        img = cv2.rectangle(img, (width, bottom_pixel), (0, height), (128, 128, 128), -1)
-        # drawline(img, (0, top_pixel), (width, top_pixel), (0, 0, 255), 5, "other", 15)
-        # drawline(img, (0, bottom_pixel), (width, bottom_pixel), (0, 0, 255), 2, "other", 15)
-        # top_pixel = height // 2
-        # drawline(img, (0, top_pixel), (width, top_pixel), (240, 240, 0), 5, "other", 15)   
+        img = cv2.rectangle(img, (width, bottom_pixel), (0, height), (128, 128, 128), -1)   
     return img
 
 def draw_rectangle(img, pt0, pt1, color):
@@ -91,46 +83,3 @@ def draw_rectangle(img, pt0, pt1, color):
     height -= 1
     width -= 1
     return cv2.rectangle(img, pt0, pt1, color, 15)
-
-"""
-for user in UID:
-    print(user)
-    device_id = os.listdir(ROOT_PATH + user)[0]
-    user_path = user + "/" + device_id + "/"
-    os.chdir(ROOT_PATH + user_path)
-    try:
-        os.makedirs(FolderName)
-    except FileExistsError:
-        pass
-    qids = sorted(os.listdir(ROOT_PATH + user_path + "NewInterval"), key = lambda x : int(x))
-    for qid in qids:
-        os.chdir(ROOT_PATH + user_path + FolderName)
-        try:
-            os.makedirs(qid)
-        except FileExistsError:
-            pass
-        images = os.listdir(ROOT_PATH + user_path + "NewInterval/" + qid)
-        for image in images:
-            full_path = ROOT_PATH + user_path + "NewInterval/" + qid + "/" + image
-            save_path = ROOT_PATH + user_path + FolderName + "/" + qid + "/" + image
-            img = cv2.imread(full_path)           
-            if extract_app_name(image) == "Facebook" and "crop" not in image: #只有FB而且沒有crop過的照片需要畫上可視範圍
-                height, width, channel = img.shape
-                height -= 1
-                width -= 1
-                if height >= width:
-                    top_pixel = int(height * 0.13)
-                    bottom_pixel = height - int(height * 0.13)
-                    drawline(img, (0, top_pixel), (width, top_pixel), (0, 0, 255), 5, "other", 15)
-                    drawline(img, (0, bottom_pixel), (width, bottom_pixel), (0, 0, 255), 5, "other", 15)
-                else:
-                    top_pixel = int(width * 0.13)
-                    bottom_pixel = width - int(width * 0.13)
-                    drawline(img, (0, top_pixel), (width, top_pixel), (0, 0, 255), 5, "other", 15)
-                    drawline(img, (0, bottom_pixel), (width, bottom_pixel), (0, 0, 255), 2, "other", 15)
-                cv2.imwrite(save_path, img)   
-            else:
-                cv2.imwrite(save_path, img)  
-"""                  
-            
-                
