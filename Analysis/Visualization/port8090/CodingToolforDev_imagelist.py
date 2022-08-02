@@ -60,14 +60,19 @@ data_path = ROOT_PATH + "Analysis/Visualization/data/"
 # data_preprocess()
 
 global_user = 0
-event_list = ["news", "external link", 'comment', "external&news", "comment&news"]
+event_col = ['share', 'like', 'typing', 'news', 'comment', 'outer_link']
+event_map = {0: 'external link', 1: 'comment', 2: 'news', 3: 'typing', 4: 'like', 5: 'share'}
+Button_dict = {'Comment_button': ('comment', "Comment"), 'Click_button': ('outer_link', "External link"),
+                'Typing_button': ('typing', 'Typing'), 'News_button': ('news', 'News'), 'Like_button': ('like', 'Like'), 
+                'Share_button': ('share', 'Share')}
+Event = ["Comment", "External link", "News", "Typing", 'Like', 'Share']
 source = {'post':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/comment.png"),
         'news':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/news.png"),
         'external link':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/link.png"),
-        'external&news':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/link.png"),
         'comment':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/comment.png"),
-        'comment&news':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/comment.png")}
-event_map = {0: 'external link', 1: 'comment', 2: 'news'}
+        'typing':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/typing.png"),
+        'like':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/like.png"),
+        'share':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/share.png")}
 scatter_layout = []
 stacked_layout = []
 prev_selection = {}
@@ -86,7 +91,7 @@ questionnaire_id = "qid"
 image_appeared = "images"
 image_content = "context"
 visible_time = "visible time"
-port_number = 8087
+port_number = 8090
 stacked_fig = ""
 port_file = "port"+str(port_number) + "/" +"port_" + str(port_number)
 Select_post_num = []
@@ -117,6 +122,16 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = Dash(__name__, external_stylesheets=external_stylesheets, suppress_callback_exceptions=True)
 
 server = app.server
+
+# from flask_caching import Cache
+# cache = Cache(app.server, config={
+#     # try 'filesystem' if you don't want to setup redis
+#     'CACHE_TYPE': 'filesystem',
+#     'CACHE_DIR': ROOT_PATH + "Analysis/Visualization/port" + str(port_number) + "/cache"
+# })
+# app.config.suppress_callback_exceptions = True
+# timeout = 60
+
 auth = dash_auth.BasicAuth(
     app,
     VALID_USERNAME_PASSWORD_PAIRS
@@ -210,13 +225,17 @@ coding_layout = html.Div(className="row", children=[
     html.Div(
         dcc.Link('Go to coding mode', href='/coding')
     ,style={'display': 'none', 'vertical-align':'bottom','margin-left': '20px', 'margin-top': '10px'}),
-    html.Div(
-        dcc.Graph(
-            id='stacked-bar',
-            config={"displayModeBar": False}
-            # style={'height': '70vh'}
-        )
-    ,style={ 'width': '100%','margin-top': '10px'}),       
+    dcc.Loading(
+        id="loading-1",
+        type="default",
+        children=html.Div(
+            dcc.Graph(
+                id='stacked-bar',
+                config={"displayModeBar": False}
+                # style={'height': '70vh'}
+            )
+        ,style={ 'width': '100%','margin-top': '10px'}),    
+    ),
 
     html.Div([
         html.Div(
@@ -293,7 +312,7 @@ def draw_barchart(df, sliderrange, uid):
     images.reverse()
     for i, image in enumerate(images):
         q_id = scatter_dataframe[scatter_dataframe['images'] == image].iloc[0]['qid']
-        picture_number = scatter_dataframe[scatter_dataframe['images'] == image].iloc[0]['picture_number']       
+        picture_number = scatter_dataframe[scatter_dataframe['images'] == image].iloc[0]['picture_number'] 
         img = Image.open(ROOT_PATH + uid + "/" + temp_path[0] + "/NewInterval/" + str(q_id) + "/" + image)
         width, height = img.size
         y_size = height * image_width / width
@@ -323,29 +342,28 @@ def draw_barchart(df, sliderrange, uid):
             color = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['color']
             detect_time = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['detect_time']
             qid = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['qid']
-            comment = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['comment']
-            link = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['outer_link']
-            news = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['news']
 
-            event = "comment&news"
-            shape_2 = int(str(news) + str(comment) + str(link), 2)
+            shape = ""
+            for col in event_col:
+                shape = shape + str(scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0][col])    
+            
+            shape = int(shape, 2) ### "6"
 
-            if shape_2 == 2:
-                event = "comment"
-            elif shape_2 == 1:
-                event = "external link"
-            elif shape_2 == 4:
-                event = "news"
-            elif shape_2 == 6:
-                event = "comment&news"
-            elif shape_2 == 5:
-                event = "external&news"
-            elif shape_2 == 0:
+            shape_bin = bin(shape)[2:][::-1] ### [0,1,1]
+            binary1_index = []
+            for j, binary in enumerate(shape_bin):
+                if binary == '1':
+                    binary1_index.append(j) ### [1, 2]
+
+            event = ""
+            bin_index_len = len(binary1_index)
+            if bin_index_len == 0:
                 event = "post"
-            elif shape_2 == 3:
-                event = "external&comment"
-            else:
-                event = "all event"
+            for j in range(bin_index_len):
+                if j == bin_index_len - 1:
+                    event = event + event_map[binary1_index[j]]
+                else:
+                    event = event + event_map[binary1_index[j]] + "&"
 
             bar = go.Bar(
                 name=str(code_id),
@@ -372,10 +390,12 @@ def draw_barchart(df, sliderrange, uid):
 
     x_dict = defaultdict(list)
     for j, row in scatter_dataframe.iterrows():
-        shape_2 = int(str(row['news']) + str(row['comment']) + str(row['outer_link']), 2)
-        # row_index = row['row_index']
+        shape = ""
+        for col in event_col:
+            shape = shape + str(row[col])           
+        shape = int(shape, 2) ### "6"
         picture_number = row['picture_number']
-        x_dict[int(picture_number) + (int(picture_number) - 1) * image_width].append(shape_2)
+        x_dict[int(picture_number) + (int(picture_number) - 1) * image_width].append(shape)
     for x_axis, shape_events in x_dict.items():
         shape = FindImgEvent(shape_events)
         shape_bin = bin(shape)[2:][::-1]
@@ -465,10 +485,13 @@ def FindImgEvent(events):
     Input('Comment_button', 'n_clicks'),
     Input('Click_button', 'n_clicks'),
     Input('News_button', 'n_clicks'),
+    Input('Typing_button', 'n_clicks'),
+    Input('Like_button', 'n_clicks'),
+    Input('Share_button', 'n_clicks'),
     Input('stacked-bar', 'selectedData')],
     [State('stacked-bar', 'relayoutData')]
 )
-def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn, file_btn, recovery_btn, comment_btn, click_btn,  news_btn, stacked_select, stacked_relayout): 
+def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn, file_btn, recovery_btn, comment_btn, click_btn,  news_btn, typing_btn, like_btn, share_btn, stacked_select, stacked_relayout): 
     global global_user, stacked_layout, stacked_fig, prev_selection, Select_row_index, width, height
 
     changed_id = [p['prop_id'] for p in callback_context.triggered][0]
@@ -481,8 +504,6 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
         Select_row_index = []
         for bar in stacked_select['points']:
             bar_id = bar['curveNumber'] 
-            if bar['customdata'][0] in event_list:
-                return "Don't select event mark", dash.no_update, dash.no_update, dash.no_update, dash.no_update
             Select_row_index.append(int(bar['customdata'][3]))
             bar_list[bar_id] = stacked_fig.data[bar_id].marker.line.color
             stacked_fig.data[bar_id].marker.line.width = 3.5
@@ -762,37 +783,28 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
         HistoryData, columns = SaveHistory(global_user, port_file, Select_row_index, "Discussion")
         return msg, stacked_fig, dash.no_update, HistoryData, columns
 
-    elif 'Comment_button' in changed_id or 'Click_button' in changed_id or 'News_button' in changed_id:
+    elif 'Comment_button' in changed_id or 'Click_button' in changed_id or 'News_button' in changed_id or 'Typing_button' in changed_id \
+        or 'Like_button' in changed_id or 'Share_button' in changed_id:
         if Select_row_index == []:
             return "Must select some bars", dash.no_update, dash.no_update, dash.no_update, dash.no_update
         else:
-            if 'Comment_button' in changed_id:
-                msg = "Bars has been marked as comment"
-                col = 'comment'
-                button_name = "Comment"
-            elif 'Click_button' in changed_id:
-                msg = "Bars has been mark as external link"
-                col = 'outer_link'
-                button_name = "External link"
-            else:
-                msg = "Bars has been mark as news"
-                col = 'news'
-                button_name = "News"
+            for button, tup in Button_dict.items():
+                if button in changed_id:
+                    col, button_name = tup
+                    msg = "Bars has been marked as " + button_name 
 
-        # row_index_list = []
+        old_value = stacked_dataframe[stacked_dataframe['row_index'] == Select_row_index[0]].iloc[0][col]
+        new_value = old_value ^ 1
+        
         for row_index in Select_row_index:
-            if stacked_dataframe[stacked_dataframe['row_index'] == row_index].iloc[0]["comment"] == 1 and col == "outer_link":
-                stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, col] = 1
+            if col == "outer_link":
+                stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, col] = new_value
                 stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, "comment"] = 0
-            elif stacked_dataframe[stacked_dataframe['row_index'] == row_index].iloc[0]["outer_link"] == 1 and col == "comment":
-                stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, col] = 1
+            elif col == "comment":
+                stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, col] = new_value
                 stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, "outer_link"] = 0
-            elif stacked_dataframe[stacked_dataframe['row_index'] == row_index].iloc[0][col] == 0:
-                stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, col] = 1
             else:
-                stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, col] = 0
-            # row_index_list.append(row_index)
-        # print("from_no_event_to_event", from_no_event_to_event)
+                stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, col] = new_value
         print(msg)
 
         SaveDataframe(global_user, port_file, stacked_dataframe)
@@ -849,7 +861,7 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
                     stacked_fig, prev_selection = SplitFigUpdate(stacked_fig, stacked_dataframe, int(post_number), stacked_layout)
                 elif action == "Discussion":
                     stacked_fig, prev_selection = DiscussFigUpdate(stacked_fig, stacked_dataframe, row_number_list, stacked_layout)
-                elif action == "Comment" or action == "External link" or action == "News":
+                elif action in Event:
                     y_size = height * image_width / width
                     stacked_fig, prev_selection = EventFigUpdate(stacked_fig, stacked_dataframe, row_number_list, stacked_layout, y_size)
 

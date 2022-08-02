@@ -53,21 +53,26 @@ def extract_time_from_answer(answer):
 
 #----- config ------
 # ubuntu path = "/home/ubuntu/News Consumption/"
-# windows path = "D:/Users/MUILab-VR/Desktop/News Consumption/"
+# windows path = "D:/Users/MUILab-VR/Desktop/News Consumption/CHI2022/media_screenshot_toolkit/"
 ROOT_PATH = "D:/Users/MUILab-VR/Desktop/News Consumption/CHI2022/media_screenshot_toolkit/"
 data_path = ROOT_PATH + "Analysis/Visualization/data/"
 
 # data_preprocess()
 
 global_user = 0
-event_list = ["news", "external link", 'comment', "external&news", "comment&news"]
+event_col = ['share', 'like', 'typing', 'news', 'comment', 'outer_link']
+event_map = {0: 'external link', 1: 'comment', 2: 'news', 3: 'typing', 4: 'like', 5: 'share'}
+Button_dict = {'Comment_button': ('comment', "Comment"), 'Click_button': ('outer_link', "External link"),
+                'Typing_button': ('typing', 'Typing'), 'News_button': ('news', 'News'), 'Like_button': ('like', 'Like'), 
+                'Share_button': ('share', 'Share')}
+Event = ["Comment", "External link", "News", "Typing", 'Like', 'Share']
 source = {'post':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/comment.png"),
         'news':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/news.png"),
         'external link':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/link.png"),
-        'external&news':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/link.png"),
         'comment':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/comment.png"),
-        'comment&news':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/comment.png")}
-event_map = {0: 'external link', 1: 'comment', 2: 'news'}
+        'typing':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/typing.png"),
+        'like':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/like.png"),
+        'share':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/share.png")}
 scatter_layout = []
 stacked_layout = []
 prev_selection = []
@@ -114,6 +119,16 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = Dash(__name__, external_stylesheets=external_stylesheets, suppress_callback_exceptions=True)
 
 server = app.server
+
+# from flask_caching import Cache
+# cache = Cache(app.server, config={
+#     # try 'filesystem' if you don't want to setup redis
+#     'CACHE_TYPE': 'filesystem',
+#     'CACHE_DIR': ROOT_PATH + "Analysis/Visualization/port" + str(port_number) + "/"
+# })
+# app.config.suppress_callback_exceptions = True
+# timeout = 60
+
 auth = dash_auth.BasicAuth(
     app,
     VALID_USERNAME_PASSWORD_PAIRS
@@ -323,30 +338,29 @@ def draw_barchart(df, sliderrange):
         detect_time = scatter_dataframe['detect_time'][i]
         qid = scatter_dataframe['qid'][i]
         row_index = scatter_dataframe['row_index'][i]
-        comment = scatter_dataframe['comment'][i]
-        link = scatter_dataframe['outer_link'][i]
-        news = scatter_dataframe['news'][i]
         repeat = scatter_dataframe['repeat'][i]
 
-        event = "comment&news"
-        shape_2 = int(str(news) + str(comment) + str(link), 2)
+        shape = ""
+        for col in event_col:
+            shape = shape + str(scatter_dataframe[col][i])    
+        
+        shape = int(shape, 2) ### "6"
 
-        if shape_2 == 2:
-            event = "comment"
-        elif shape_2 == 1:
-            event = "external link"
-        elif shape_2 == 4:
-            event = "news"
-        elif shape_2 == 6:
-            event = "comment&news"
-        elif shape_2 == 5:
-            event = "external&news"
-        elif shape_2 == 0:
+        shape_bin = bin(shape)[2:][::-1] ### [0,1,1]
+        binary1_index = []
+        for j, binary in enumerate(shape_bin):
+            if binary == '1':
+                binary1_index.append(j) ### [1, 2]
+
+        event = ""
+        bin_index_len = len(binary1_index)
+        if bin_index_len == 0:
             event = "post"
-        elif shape_2 == 3:
-            event = "external&comment"
-        else:
-            event = "all event"
+        for j in range(bin_index_len):
+            if j == bin_index_len - 1:
+                event = event + event_map[binary1_index[j]]
+            else:
+                event = event + event_map[binary1_index[j]] + "&"
 
         if prev_img != img:
             non_visual_costomdata = [code_id, detect_time, qid, row_index, picture_number]
@@ -354,23 +368,23 @@ def draw_barchart(df, sliderrange):
             fig.add_trace(bottom_bar)
 
         bar = go.Bar(
-                    name=str(code_id),
-                    y=[percent],
-                    x=[int(picture_number)],
-                    marker=dict(color=color),
-                    offset=0,
-                    customdata=[[code_id, detect_time, qid, row_index, picture_number, event]],
-                    hovertemplate="<br>".join([
-                    "post_number=%{customdata[0]}",
-                    "detect time=%{customdata[1]}",
-                    "questionnaire id=%{customdata[2]}",
-                    "percent=%{y}",
-                    "row index=%{customdata[3]}", 
-                    "picture number=%{customdata[4]}", 
-                    "event=%{customdata[5]}",                           
-                    ]),
-                    unselected=dict(marker=dict(opacity=0.5))
-                )
+            name=str(code_id),
+            y=[percent],
+            x=[int(picture_number)],
+            marker=dict(color=color),
+            offset=0,
+            customdata=[[code_id, detect_time, qid, row_index, picture_number, event]],
+            hovertemplate="<br>".join([
+            "post_number=%{customdata[0]}",
+            "detect time=%{customdata[1]}",
+            "questionnaire id=%{customdata[2]}",
+            "percent=%{y}",
+            "row index=%{customdata[3]}", 
+            "picture number=%{customdata[4]}", 
+            "event=%{customdata[5]}",                           
+            ]),
+            unselected=dict(marker=dict(opacity=0.5))
+        )
         fig.add_trace(bar)  
 
         if i - 1 >= 0 and scatter_dataframe['images'][i - 1] != img:
@@ -383,6 +397,7 @@ def draw_barchart(df, sliderrange):
             top_bar = nonvisual_topbar(picture_number, non_visual_costomdata)
             fig.add_trace(top_bar)
 
+        ### repeat post color line
         if repeat != 0 or code_id in post_color:
             if repeat != 0:
                 post_index = repeat
@@ -407,10 +422,12 @@ def draw_barchart(df, sliderrange):
 
     x_dict = defaultdict(list)
     for j, row in scatter_dataframe.iterrows():
-        shape_2 = int(str(row['news']) + str(row['comment']) + str(row['outer_link']), 2)
-        # row_index = row['row_index']
+        shape = ""
+        for col in event_col:
+            shape = shape + str(row[col])           
+        shape = int(shape, 2) ### "6"
         picture_number = row['picture_number']
-        x_dict[int(picture_number) + 0.4].append(shape_2)
+        x_dict[int(picture_number) + 0.4].append(shape)
     for x_axis, shape_events in x_dict.items():
         shape = FindImgEvent(shape_events)
         shape_bin = bin(shape)[2:][::-1]
@@ -473,6 +490,9 @@ def draw_barchart(df, sliderrange):
     #         line=dict(color=color),
     #     )
 
+    if sliderrange is None:
+        sliderrange = [0, 50]
+
     fig.update_layout(
         barmode="stack",
         uniformtext=dict(mode="hide", minsize=10),
@@ -512,7 +532,7 @@ def FindImgEvent(events):
     Input('users-dropdown', 'value'),
     [Input('button_result', 'children')])
 def update_image(stacked_hover, userid, button_result):
-
+    global global_user
     changed_id = [p['prop_id'] for p in callback_context.triggered][0]
     if 'users-dropdown' in changed_id:
         return dash.no_update
@@ -525,17 +545,11 @@ def update_image(stacked_hover, userid, button_result):
         if "拆開" in button_result or "上一步" in button_result:
             return dash.no_update
         hoverData = stacked_hover
-        if hoverData['points'][0]['customdata'][0] in event_list:
-            picture_number = int(hoverData['points'][0]['customdata'][3])
-        else:
-            picture_number = int(hoverData['points'][0]['customdata'][4])
+        picture_number = int(hoverData['points'][0]['customdata'][4])
         
     elif 'stacked-bar' in changed_id:
         hoverData = stacked_hover
-        if hoverData['points'][0]['customdata'][0] in event_list:
-            picture_number = int(hoverData['points'][0]['customdata'][3])
-        else:
-            picture_number = int(hoverData['points'][0]['customdata'][4])
+        picture_number = int(hoverData['points'][0]['customdata'][4])
 
     ### used for searching comment and outer_link value
     cache = GetDataframe(global_user, port_file)
@@ -654,10 +668,13 @@ def display_image(n_click0, n_click1, n_click2, n_click3, n_click4):
     Input('Comment_button', 'n_clicks'),
     Input('Click_button', 'n_clicks'),
     Input('News_button', 'n_clicks'),
+    Input('Typing_button', 'n_clicks'),
+    Input('Like_button', 'n_clicks'),
+    Input('Share_button', 'n_clicks'),
     Input('stacked-bar', 'selectedData')],
-    [State('stacked-bar', 'relayoutData')]
+    State('stacked-bar', 'relayoutData'),
 )
-def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn, file_btn, recovery_btn, comment_btn, click_btn,  news_btn, stacked_select, stacked_relayout): 
+def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn, file_btn, recovery_btn, comment_btn, click_btn,  news_btn, typing_btn, like_btn, share_btn, stacked_select, stacked_relayout): 
     global global_user, stacked_layout, stacked_fig, prev_selection, Select_row_index
 
     changed_id = [p['prop_id'] for p in callback_context.triggered][0]
@@ -670,8 +687,6 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
         Select_row_index = []
         for bar in stacked_select['points']:
             bar_id = bar['curveNumber'] 
-            if bar['customdata'][0] in event_list:
-                return "Don't select event mark", dash.no_update, dash.no_update, dash.no_update, dash.no_update
             Select_row_index.append(int(bar['customdata'][3]))
             stacked_fig.data[bar_id].marker.line.width = 3.5
             stacked_fig.data[bar_id].marker.line.color = "#FFD700"
@@ -691,7 +706,7 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
             stacked_fig.update_layout(
                 xaxis=dict(
                     rangeslider=dict(visible=True),
-                    range = None,
+                    range = [0, 50],
                     type="linear"
                 )
             )
@@ -707,7 +722,7 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
             stacked_fig.update_layout(
                 xaxis=dict(
                     rangeslider=dict(visible=True),
-                    range = None,
+                    range = [0, 50],
                     type="linear"
                 )
             )        
@@ -770,31 +785,6 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
         global_user = uid
     if global_user != 0 and global_user != "":
         stacked_dataframe = GetDataframe(global_user, port_file)
-
-        # if len(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user)) != 0:
-        #     stacked_file_path = sorted(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user))[-1]
-        #     try:
-        #         stacked_dataframe = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "/" + stacked_file_path, encoding="utf_8_sig")
-        #     except:
-        #         stacked_dataframe = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "/" + stacked_file_path, engine='python')
-        # else:
-        #     try:
-        #         scatter_df = pd.read_csv(data_path + global_user + ".csv", encoding="utf_8_sig")
-        #     except:
-        #         scatter_df = pd.read_csv(data_path + global_user + ".csv", engine='python')
-        #     # real data
-        #     scatter_df = scatter_df.drop(scatter_df[scatter_df.code_id == -2].index)
-        #     scatter_df = scatter_df.drop(columns=['n_main', 'keyword', 'picture_number'])
-        #     scatter_df['code_id'] = scatter_df['code_id'].apply(lambda x:int(x) + 1)
-        #     scatter_df.reset_index(inplace=True,drop=True)
-
-        #     stacked_dataframe = copy.deepcopy(scatter_df)
-        #     stacked_dataframe['detect_time'] = stacked_dataframe[image_appeared].apply(lambda x:extract_time_from_answer(x))
-        #     stacked_dataframe['row_index'] = stacked_dataframe.index
-        #     stacked_dataframe['visible time'] = 0
-        #     stacked_dataframe['discuss'] = 0
-        #     stacked_dataframe['discuss_reason'] = " "
-        #     stacked_dataframe = BarChart_Preprocessing(stacked_dataframe)
     else:
         columns = [{'name': col, 'id': col} for col in history_column]
         fig = {
@@ -974,37 +964,28 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
         HistoryData, columns = SaveHistory(global_user, port_file, Select_row_index, "Discussion")
         return msg, stacked_fig, dash.no_update, HistoryData, columns
 
-    elif 'Comment_button' in changed_id or 'Click_button' in changed_id or 'News_button' in changed_id:
+    elif 'Comment_button' in changed_id or 'Click_button' in changed_id or 'News_button' in changed_id or 'Typing_button' in changed_id \
+        or 'Like_button' in changed_id or 'Share_button' in changed_id:
         if Select_row_index == []:
             return "Must select some bars", dash.no_update, dash.no_update, dash.no_update, dash.no_update
-        else:
-            if 'Comment_button' in changed_id:
-                msg = "Bars has been marked as comment"
-                col = 'comment'
-                button_name = "Comment"
-            elif 'Click_button' in changed_id:
-                msg = "Bars has been mark as external link"
-                col = 'outer_link'
-                button_name = "External link"
-            else:
-                msg = "Bars has been mark as news"
-                col = 'news'
-                button_name = "News"
+        else:            
+            for button, tup in Button_dict.items():
+                if button in changed_id:
+                    col, button_name = tup
+                    msg = "Bars has been marked as " + button_name 
 
-        # row_index_list = []
+        old_value = stacked_dataframe[stacked_dataframe['row_index'] == Select_row_index[0]].iloc[0][col]
+        new_value = old_value ^ 1
+        
         for row_index in Select_row_index:
-            if stacked_dataframe[stacked_dataframe['row_index'] == row_index].iloc[0]["comment"] == 1 and col == "outer_link":
-                stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, col] = 1
+            if col == "outer_link":
+                stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, col] = new_value
                 stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, "comment"] = 0
-            elif stacked_dataframe[stacked_dataframe['row_index'] == row_index].iloc[0]["outer_link"] == 1 and col == "comment":
-                stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, col] = 1
+            elif col == "comment":
+                stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, col] = new_value
                 stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, "outer_link"] = 0
-            elif stacked_dataframe[stacked_dataframe['row_index'] == row_index].iloc[0][col] == 0:
-                stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, col] = 1
             else:
-                stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, col] = 0
-            # row_index_list.append(row_index)
-        # print("from_no_event_to_event", from_no_event_to_event)
+                stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, col] = new_value
         print(msg)
 
         SaveDataframe(global_user, port_file, stacked_dataframe)
@@ -1059,7 +1040,7 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
                     stacked_fig = SplitFigUpdate(stacked_fig, stacked_dataframe, int(post_number), stacked_layout)
                 elif action == "Discussion":
                     stacked_fig = DiscussFigUpdate(stacked_fig, stacked_dataframe, row_number_list, stacked_layout)
-                elif action == "Comment" or action == "External link" or action == "News":
+                elif action in Event:
                     stacked_fig = EventFigUpdate(stacked_fig, stacked_dataframe, row_number_list, stacked_layout)
 
                 return msg, stacked_fig, dash.no_update, history[global_user] , columns
@@ -1122,6 +1103,7 @@ def RecordScatterLayout(scatter_relayout):
     prevent_initial_call=True,
 )
 def DownloadClick(uid, file_btn):
+    global global_user
     changed_id = [p['prop_id'] for p in callback_context.triggered][0]
     if "Output_file" in changed_id:
         stacked_dataframe = GetDataframe(global_user, port_file)
@@ -1168,10 +1150,7 @@ def update_content(stacked_hover, userid, result_btn):
     
     if 'stacked-bar' in changed_id:
         hoverData = stacked_hover
-        if hoverData['points'][0]['customdata'][0] in event_list:
-            row_index = int(hoverData['points'][0]['customdata'][2])
-        else:
-            row_index = int(hoverData['points'][0]['customdata'][3])
+        row_index = int(hoverData['points'][0]['customdata'][3])
 
         if global_user == None or global_user == 0:
             return dash.no_update
@@ -1199,10 +1178,7 @@ def whichPost(stacked_hover):
         return dash.no_update
     changed_id = [p['prop_id'] for p in callback_context.triggered][0]
     if 'stacked-bar' in changed_id:
-        if stacked_hover['points'][0]['customdata'][0] in event_list:
-            post_number = int(stacked_hover['points'][0]['customdata'][1])
-        else:
-            post_number = int(stacked_hover['points'][0]['customdata'][0])
+        post_number = int(stacked_hover['points'][0]['customdata'][0])
         return "Post number: " + str(post_number)
     else:
         return dash.no_update

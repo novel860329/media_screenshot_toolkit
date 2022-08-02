@@ -7,7 +7,7 @@ import os
 import json
 
 
-ROOT_PATH = "D:/Users/MUILab-VR/Desktop/News Consumption/CHI2022/media_screenshot_toolkit/"
+ROOT_PATH = "/home/ubuntu/News Consumption/"
 history_column = ["Time", "Correction step", "Row number", "Button click"]
 columns = [{'name': col, 'id': col} for col in history_column]
 data_path = ROOT_PATH + "Analysis/Visualization/data/"
@@ -30,21 +30,29 @@ def extract_time_from_answer(answer):
     return date + " " + time
 
 def BarChart_Preprocessing(df):
-    facebook_color = ["rgba(2,22,105,1)",  "rgba(5,61,180,1)", 
-                    "rgba(0,68,255,1)", "rgba(4,134,219,1)", "rgba(64, 187, 213,1)",
-                    "rgba(87,226,255,1)", "rgba(135,206,255,1)", "rgba(46, 180, 237,1)"]
-    youtube_color = ["rgba(255, 20, 147,1)",  "rgba(248, 0, 0,1)", "rgba(255, 100, 0,1)",
+    bar_color = {
+        "Facebook":["rgba(2,22,105,1)",  "rgba(5,61,180,1)", "rgba(0,68,255,1)", "rgba(4,134,219,1)", "rgba(64, 187, 213,1)",
+                    "rgba(87,226,255,1)", "rgba(135,206,255,1)", "rgba(46, 180, 237,1)"],
+        "Instagram":["rgba(139, 0, 139,1)",  "rgba(85, 26, 139,1)", "rgba(115, 35, 189,1)",
+                      "rgba(171, 156, 255,1)", "rgba(213, 172, 255,1)", "rgba(255, 187, 255,1)"],
+        "Youtube":["rgba(255, 20, 147,1)",  "rgba(248, 0, 0,1)", "rgba(255, 100, 0,1)",
                     "rgba(255, 150, 0,1)", "rgba(255, 126, 106,1)", "rgba(204, 75, 101,1)",
                      "rgba(205, 140, 149,1)", "rgba(202, 9, 53,1)"]
-    instagram_color = ["rgba(139, 0, 139,1)",  "rgba(85, 26, 139,1)", "rgba(115, 35, 189,1)",
-                      "rgba(171, 156, 255,1)", "rgba(213, 172, 255,1)", "rgba(255, 187, 255,1)"]
-    All_color = facebook_color + youtube_color + instagram_color
+    }
     
-    max_postID = df['code_id'].max()
+    code_id_list = sorted(list(set(df['code_id'].tolist())))
     color_scale_dict = {}
-    for i in range(max_postID):
-        color = facebook_color[i % len(facebook_color)]
-        color_scale_dict[i + 1] = color
+    color_counter = 0
+    prev_app = "None"
+    for i in code_id_list:
+        img = df[df['code_id'] == i].iloc[0]['images']
+        app = extract_app_name(img)
+        if prev_app != app:
+            color_counter = 0
+        color = bar_color[app][color_counter % len(bar_color[app])]
+        color_scale_dict[i] = color
+        color_counter += 1
+        prev_app = app
         
     fig_dataframe = []    
     pic_num = 0
@@ -73,12 +81,12 @@ def BarChart_Preprocessing(df):
     return df
 
 def GetDataframe(global_user, port_file):
-    if len(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user)) != 0:
-        stacked_file_path = sorted(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user))[-1]
+    if len(os.listdir(ROOT_PATH + "Analysis/Visualization/" + port_file + "/" + global_user)) != 0:
+        stacked_file_path = sorted(os.listdir(ROOT_PATH + "Analysis/Visualization/" + port_file + "/" + global_user))[-1]
         try:
-            stacked_dataframe = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "/" + stacked_file_path, encoding="utf_8_sig")
+            stacked_dataframe = pd.read_csv(ROOT_PATH + "Analysis/Visualization/" + port_file + "/" + global_user + "/" + stacked_file_path, encoding="utf_8_sig")
         except:
-            stacked_dataframe = pd.read_csv(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "/" + stacked_file_path, engine='python')
+            stacked_dataframe = pd.read_csv(ROOT_PATH + "Analysis/Visualization/" + port_file + "/" + global_user + "/" + stacked_file_path, engine='python')
     else:
         try:
             scatter_df = pd.read_csv(data_path + global_user + ".csv", encoding="utf_8_sig")

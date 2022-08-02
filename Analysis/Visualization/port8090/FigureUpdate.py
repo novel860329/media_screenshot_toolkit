@@ -3,15 +3,15 @@ from PIL import Image
 
 ROOT_PATH = 'D:/Users/MUILab-VR/Desktop/News Consumption/CHI2022/media_screenshot_toolkit/'
 
-event_list = ["post", "external link", 'comment', "external&comment", "news", "external&news", "comment&news", "all event"]
-
+event_col = ['share', 'like', 'typing', 'news', 'comment', 'outer_link']
+event_map = {0: 'external link', 1: 'comment', 2: 'news', 3: 'typing', 4: 'like', 5: 'share'}
 source = {'post':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/comment.png"),
         'news':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/news.png"),
         'external link':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/link.png"),
-        'external&news':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/link.png"),
         'comment':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/comment.png"),
-        'comment&news':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/comment.png")}
-event_map = {0: 'external link', 1: 'comment', 2: 'news'}
+        'typing':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/typing.png"),
+        'like':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/like.png"),
+        'share':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/share.png")}
 
 image_width = 5
 def UpdateFigureLayout(stacked_fig, stacked_layout):
@@ -58,16 +58,35 @@ def FindImgEvent(events):
 
     return shape
 
+def GetEvent(shape):
+    shape = int(shape, 2) ### "6"
+
+    shape_bin = bin(shape)[2:][::-1] ### [0,1,1]
+    binary1_index = []
+    for j, binary in enumerate(shape_bin):
+        if binary == '1':
+            binary1_index.append(j) ### [1, 2]
+
+    event = ""
+    bin_index_len = len(binary1_index)
+    if bin_index_len == 0:
+        event = "post"
+    for j in range(bin_index_len):
+        if j == bin_index_len - 1:
+            event = event + event_map[binary1_index[j]]
+        else:
+            event = event + event_map[binary1_index[j]] + "&"
+    return event
+
 def CombineFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_layout):
     updatefig_dataframe = stacked_dataframe[stacked_dataframe['row_index'].isin(Select_row_index)]
     
     bar_list = {}
     update_fig_index = []
     for i, trace in enumerate(stacked_fig.data):
-        if trace['customdata'][0][0] not in event_list:
-            row_id = trace['customdata'][0][3]
-            if trace['name'] != "-1" and row_id in Select_row_index:
-                update_fig_index.append(i)
+        row_id = trace['customdata'][0][3]
+        if trace['name'] != "-1" and row_id in Select_row_index:
+            update_fig_index.append(i)
     update_fig_index = sorted(update_fig_index, reverse=True)
 
     for index, (i, row) in zip(update_fig_index, updatefig_dataframe.iterrows()):            
@@ -78,8 +97,11 @@ def CombineFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_l
         detect_time = row['detect_time']
         qid = row['qid']
         row_index = row['row_index']
-        shape = int(str(row['news']) + str(row['comment']) + str(row['outer_link']), 2)
-        event = FindImgEvent([shape])
+        shape = ""
+        for col in event_col:
+            shape = shape + str(row[col])
+
+        event = GetEvent(shape)
 
         bar_list[index] = color
 
@@ -89,7 +111,7 @@ def CombineFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_l
                     color=color,
                     width=3.5
                 )),
-            customdata=[[code_id, detect_time, qid, row_index, picture_number, event_list[event], round(percent, 2)]],
+            customdata=[[code_id, detect_time, qid, row_index, picture_number, event, round(percent, 2)]],
             hovertemplate="<br>".join([
                 "post_number=%{customdata[0]}",
                 "detect time=%{customdata[1]}",
@@ -111,17 +133,11 @@ def DeleteFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_la
     update_fig_index = []
     update_for_event = defaultdict(list)
     for i, trace in enumerate(stacked_fig.data):
-        row_index = trace['customdata'][0][3]
-        if trace['customdata'][0][0] in event_list:
-            row_id = trace['customdata'][0][2]
-            if trace['name'] != "-1" and row_id in Select_row_index:
-                update_for_event[row_id].append(i)
-        else:
-            row_id = trace['customdata'][0][3]
-            if trace['name'] != "-1" and row_id in Select_row_index:
-                update_fig_index.append(i)
-            if trace['name'] == "-1":
-                update_for_event[row_id].append(i)
+        row_id = trace['customdata'][0][3]
+        if trace['name'] != "-1" and row_id in Select_row_index:
+            update_fig_index.append(i)
+        if trace['name'] == "-1":
+            update_for_event[row_id].append(i)
 
     update_fig_index = sorted(update_fig_index, reverse=True)
 
@@ -131,9 +147,9 @@ def DeleteFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_la
         if row_index in update_for_event:
             for j in update_for_event[row_index]:
                 stacked_fig.data[j].visible = visible
-            for j, layout_img in enumerate(stacked_fig.layout['images']):
-                if layout_img['x'] == int(picture_number) + (int(picture_number) - 1) * image_width:
-                    stacked_fig.layout['images'][j].visible=visible
+        for j, layout_img in enumerate(stacked_fig.layout['images']):
+            if layout_img['x'] == int(picture_number) + (int(picture_number) - 1) * image_width:
+                stacked_fig.layout['images'][j].visible=visible
         stacked_fig.data[index].visible = visible
 
     stacked_fig = UpdateFigureLayout(stacked_fig, stacked_layout)
@@ -146,11 +162,10 @@ def SplitFigUpdate(stacked_fig, stacked_dataframe, post_number, stacked_layout):
     bar_list = {}
     update_fig_index = []
     for i, trace in enumerate(stacked_fig.data):
-        if trace['customdata'][0][0] not in event_list:
-            row_id = trace['customdata'][0][3]
-            code_id = trace['customdata'][0][0]
-            if trace['name'] != "-1" and code_id >= int(post_number):
-                update_fig_index.append(i)
+        row_id = trace['customdata'][0][3]
+        code_id = trace['customdata'][0][0]
+        if trace['name'] != "-1" and code_id >= int(post_number):
+            update_fig_index.append(i)
     update_fig_index = sorted(update_fig_index, reverse=True)
 
     for index, (i, row) in zip(update_fig_index, updatefig_dataframe.iterrows()):
@@ -161,8 +176,12 @@ def SplitFigUpdate(stacked_fig, stacked_dataframe, post_number, stacked_layout):
         detect_time = row['detect_time']
         qid = row['qid']
         row_index = row['row_index']
-        shape = int(str(row['news']) + str(row['comment']) + str(row['outer_link']), 2)
-        event = FindImgEvent([shape])
+
+        shape = ""
+        for col in event_col:
+            shape = shape + str(row[col])
+
+        event = GetEvent(shape)
 
         bar_list[index] = color
 
@@ -172,7 +191,7 @@ def SplitFigUpdate(stacked_fig, stacked_dataframe, post_number, stacked_layout):
                     color=color,
                     width=3.5
                 )),
-            customdata=[[code_id, detect_time, qid, row_index, picture_number, event_list[event], round(percent, 2)]],
+            customdata=[[code_id, detect_time, qid, row_index, picture_number, event, round(percent, 2)]],
             hovertemplate="<br>".join([
                 "post_number=%{customdata[0]}",
                 "detect time=%{customdata[1]}",
@@ -195,14 +214,9 @@ def DiscussFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_l
     update_fig_index = []
     update_for_event = {}
     for i, trace in enumerate(stacked_fig.data):
-        if trace['customdata'][0][0] in event_list:
-            row_id = trace['customdata'][0][2]
-            if trace['name'] != "-1" and row_id in Select_row_index:
-                update_for_event[row_id] = i
-        else:
-            row_id = trace['customdata'][0][3]
-            if trace['name'] != "-1" and row_id in Select_row_index:
-                update_fig_index.append(i)
+        row_id = trace['customdata'][0][3]
+        if trace['name'] != "-1" and row_id in Select_row_index:
+            update_fig_index.append(i)
     update_fig_index = sorted(update_fig_index, reverse=True)
 
     for index, (i, row) in zip(update_fig_index, updatefig_dataframe.iterrows()):
@@ -224,34 +238,19 @@ def EventFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_lay
     bar_list = {}
     update_fig_index = []
     update_img_index = []
-    update_for_event = {}
     for i, trace in enumerate(stacked_fig.data):
         row_id = trace['customdata'][0][3]
         if trace['name'] != "-1" and row_id in Select_row_index:
             update_fig_index.append(i)
-            if trace['customdata'][0][5] in event_list:
-                update_for_event[row_id] = i
+
     update_fig_index = sorted(update_fig_index, reverse=True)
 
     for index, (i, row) in zip(update_fig_index, updatefig_dataframe.iterrows()):
-        shape_2 = int(str(row['news']) + str(row['comment']) + str(row['outer_link']), 2)
-
-        if shape_2 == 2:
-            event = "comment"
-        elif shape_2 == 1:
-            event = "external link"
-        elif shape_2 == 4:
-            event = "news"
-        elif shape_2 == 6:
-            event = "comment&news"
-        elif shape_2 == 5:
-            event = "external&news"
-        elif shape_2 == 0:
-            event = "post"
-        elif shape_2 == 3:
-            event = "external&comment"
-        else:
-            event = "all event"
+        shape = ""
+        for col in event_col:
+            shape = shape + str(row[col])
+        
+        event = GetEvent(shape)
 
         code_id = row['code_id']  
         percent = row['percent']
@@ -286,9 +285,12 @@ def EventFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_lay
     updatefig_dataframe = stacked_dataframe[stacked_dataframe['picture_number'].isin(update_img_index)]
     x_dict = defaultdict(list)
     for i, row in updatefig_dataframe.iterrows():
-        shape_2 = int(str(row['news']) + str(row['comment']) + str(row['outer_link']), 2)
+        shape = ""
+        for col in event_col:
+            shape = shape + str(row[col])           
+        shape = int(shape, 2) ### "6"
         picture_number = row['picture_number']
-        x_dict[int(picture_number) + (int(picture_number) - 1) * image_width].append(shape_2)
+        x_dict[int(picture_number) + (int(picture_number) - 1) * image_width].append(shape)
     for x_axis, shape_events in x_dict.items():
         shape = FindImgEvent(shape_events)
         shape_bin = bin(shape)[2:][::-1]
