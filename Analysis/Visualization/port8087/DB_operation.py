@@ -7,7 +7,7 @@ import os
 import json
 
 
-ROOT_PATH = "/home/ubuntu/News Consumption/"
+ROOT_PATH = "D:/Users/MUILab-VR/Desktop/News Consumption/CHI2022/media_screenshot_toolkit/"
 history_column = ["Time", "Correction step", "Row number", "Button click"]
 columns = [{'name': col, 'id': col} for col in history_column]
 data_path = ROOT_PATH + "Analysis/Visualization/data/"

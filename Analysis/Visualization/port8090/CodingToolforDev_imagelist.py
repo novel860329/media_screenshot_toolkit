@@ -82,7 +82,6 @@ description = '''
     1. Blue tone : Facebook
     2. Red tone : Youtube
     3. Purple : Instagram
-* **Click screenshot can enlarge it and click again can reduce to original size**
 * **Different mark on the bar represent different event and you can hover on it to see what evnet it stand for**
 '''
 
@@ -152,18 +151,16 @@ app.layout = html.Div([
     html.Div(id='page-content')
 ])
 
+
 coding_layout = html.Div(className="row", children=[
     html.Div([
-        html.Div(
-            html.Div([
-                dcc.Dropdown(
-                    id='users-dropdown',
-                    options=[{'label': i, 'value': i} for i in User_data],
-                    value=""
-                )
-            ])
-            , style={'width': '10%', 'display': 'inline-block', 'vertical-align':'top','margin-left': '10px', 'margin-top': '10px'}
-        ),
+        html.Div([
+            dcc.Dropdown(
+                id='users-dropdown',
+                options=[{'label': i, 'value': i} for i in User_data],
+                value=""
+            )
+        ], style={'width': '7%', 'display': 'inline-block', 'vertical-align':'top','margin-left': '10px', 'margin-top': '10px'}),
 
         html.Div([
             html.Button('Combine', id='Merge_button', n_clicks=0, style={"margin-left": "10px"}),
@@ -172,56 +169,58 @@ coding_layout = html.Div(className="row", children=[
             html.Button('News', id='News_button', n_clicks=0, style={"margin-left": "10px"}),
         ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '10px'}),
 
-        html.Details([
-            html.Summary('Facebook events'),          
-            html.Div([                               
-                html.Button('Comment', id='Comment_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('External Link', id='Click_button', n_clicks=0, style={"margin-left": "10px"}),           
-                html.Button('Like', id='Like_button', n_clicks=0, style={"margin-left": "10px"}),                 
-                html.Button('Typing', id='Typing_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Share', id='Share_button', n_clicks=0, style={"margin-left": "10px"}),     
-            ]),            
-        ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
-
-        html.Details([
-            html.Summary('Instagram events'),
-            html.Div([
-                html.Button('Comment', id='Comment2_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('External Link', id='Click2_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Like', id='Like2_button', n_clicks=0, style={"margin-left": "10px"}),                 
-                html.Button('Typing', id='Typing2_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Share', id='Share2_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Story', id='Story2_button', n_clicks=0, style={"margin-left": "10px"}),     
-            ]),            
-        ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
-
-        html.Details([
-            html.Summary('Youtube events'),
-            html.Div([
-                html.Button('Comment', id='Comment3_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Watch', id='Watch3_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Typing', id='Typing3_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Click on video', id='Click3_button', n_clicks=0, style={"margin-left": "10px"}),     
-            ]),            
-        ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
-
-        html.Div(
-            html.Div([
-                html.P("Discuss Reason：", style={'fontSize':18}),
-                dcc.Input(
-                    id='Discuss_text',
-                    type='text',
-                    style={'width':'100px'}
-                ),
-                html.Button('Record', id='Discuss_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Previous Step', id='Recovery_button', n_clicks=0, style={"margin-left": "20px"}),
-                dcc.Download( id="download_file"),
-                html.Button('Output File', id='Output_file', n_clicks=0, style={"margin-left": "10px"}), 
-                html.B(id="button_result", style={'fontSize':16, "margin-left": "10px"}),
-            ], style={'display': 'flex', 'flex-direction': 'row','margin-left': '10px', 'margin-top': '10px'}),           
-        ),
-    ]),
+        html.Div([
+            html.P("Discuss Reason：", style={'fontSize':18}),
+            dcc.Input(
+                id='Discuss_text',
+                type='text',
+                style={'width':'20%'}
+            ),
+            html.Button('Record', id='Discuss_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Previous Step', id='Recovery_button', n_clicks=0, style={"margin-left": "20px"}),
+            dcc.Download( id="download_file"),
+            html.Button('Output File', id='Output_file', n_clicks=0, style={"margin-left": "10px"}), 
+        ], style={'display': 'flex', 'flex-direction': 'row','margin-left': '10px', 'margin-top': '10px'}),           
+    ], style={'display': 'flex', 'flex-direction': 'row'}),
     
+    html.Details([
+        html.Summary('Facebook events'),          
+        html.Div([                               
+            html.Button('Comment', id='Comment_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('External Link', id='Click_button', n_clicks=0, style={"margin-left": "10px"}),           
+            html.Button('Like', id='Like_button', n_clicks=0, style={"margin-left": "10px"}),                 
+            html.Button('Typing', id='Typing_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Share', id='Share_button', n_clicks=0, style={"margin-left": "10px"}),     
+        ]),            
+    ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
+
+    html.Details([
+        html.Summary('Instagram events'),
+        html.Div([
+            html.Button('Comment', id='Comment2_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('External Link', id='Click2_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Like', id='Like2_button', n_clicks=0, style={"margin-left": "10px"}),                 
+            html.Button('Typing', id='Typing2_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Share', id='Share2_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Story', id='Story2_button', n_clicks=0, style={"margin-left": "10px"}),     
+        ]),            
+    ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
+
+    html.Details([
+        html.Summary('Youtube events'),
+        html.Div([
+            html.Button('Comment', id='Comment3_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Watch', id='Watch3_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Typing', id='Typing3_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Click on video', id='Click3_button', n_clicks=0, style={"margin-left": "10px"}),     
+        ]),            
+    ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
+    
+    html.Div(
+        html.B(id="button_result", style={'fontSize':16, "margin-left": "10px"}),
+        style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'},
+    ),
+
     html.Div(
         dcc.Link('Go to coding mode', href='/coding')
     ,style={'display': 'none', 'vertical-align':'bottom','margin-left': '20px', 'margin-top': '10px'}),

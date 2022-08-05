@@ -81,9 +81,10 @@ description = '''
 * **We use different background color to represent apps**
     1. Blue tone : Facebook
     2. Red tone : Youtube
-    3. Purple : Instagram
+    3. Purple tone: Instagram
 * **Click screenshot can enlarge it and click again can reduce to original size**
-* **Different mark on the bar represent different event and you can hover on it to see what evnet it stand for**
+* **Different icon on the bar represent different event and you can hover on it to see what event it stand for**
+* **The horizontal line on the event icon with different color represent the posts have appeared before**
 '''
 
 User_ID = "user"
@@ -91,7 +92,7 @@ questionnaire_id = "qid"
 image_appeared = "images"
 image_content = "context"
 visible_time = "visible time"
-port_number = 28031
+port_number = 8087
 stacked_fig = ""
 port_file = "port"+str(port_number) + "/" +"port_" + str(port_number)
 Select_post_num = []
@@ -153,17 +154,14 @@ app.layout = html.Div([
 
 coding_layout = html.Div(className="row", children=[
     html.Div([
-        html.Div(
-            html.Div([
-                dcc.Dropdown(
-                    id='users-dropdown',
-                    options=[{'label': i, 'value': i} for i in User_data],
-                    value=""
-                )
-            ])
-            , style={'width': '10%', 'display': 'inline-block', 'vertical-align':'top','margin-left': '10px', 'margin-top': '10px'}
-        ),
-
+        html.Div([
+            dcc.Dropdown(
+                id='users-dropdown',
+                options=[{'label': i, 'value': i} for i in User_data],
+                value=""
+            )
+        ], style={'width': '7%', 'display': 'inline-block', 'vertical-align':'top','margin-left': '10px', 'margin-top': '10px'}),
+            
         html.Div([
             html.Button('Combine', id='Merge_button', n_clicks=0, style={"margin-left": "10px"}),
             html.Button('Delete', id='Delete_button', n_clicks=0, style={"margin-left": "10px"}),
@@ -171,77 +169,80 @@ coding_layout = html.Div(className="row", children=[
             html.Button('News', id='News_button', n_clicks=0, style={"margin-left": "10px"}),
         ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '10px'}),
 
-        html.Details([
-            html.Summary('Facebook events'),          
-            html.Div([                               
-                html.Button('Comment', id='Comment_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('External Link', id='Click_button', n_clicks=0, style={"margin-left": "10px"}),           
-                html.Button('Like', id='Like_button', n_clicks=0, style={"margin-left": "10px"}),                 
-                html.Button('Typing', id='Typing_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Share', id='Share_button', n_clicks=0, style={"margin-left": "10px"}),     
-            ]),            
-        ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
+        html.Div([
+            html.P("Discuss Reason：", style={'fontSize':18}),
+            dcc.Input(
+                id='Discuss_text',
+                type='text',
+                style={'width':'20%'}
+            ),
+            html.Button('Record', id='Discuss_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Previous Step', id='Recovery_button', n_clicks=0, style={"margin-left": "20px"}),
+            dcc.Download( id="download_file"),
+            html.Button('Output File', id='Output_file', n_clicks=0, style={"margin-left": "10px"}), 
+        ], style={'display': 'flex', 'flex-direction': 'row','margin-left': '10px', 'margin-top': '10px'}),                      
+    ], style={'display': 'flex', 'flex-direction': 'row'}),
 
-        html.Details([
-            html.Summary('Instagram events'),
-            html.Div([
-                html.Button('Comment', id='Comment2_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('External Link', id='Click2_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Like', id='Like2_button', n_clicks=0, style={"margin-left": "10px"}),                 
-                html.Button('Typing', id='Typing2_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Share', id='Share2_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Story', id='Story2_button', n_clicks=0, style={"margin-left": "10px"}),     
-            ]),            
-        ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
+     html.Details([
+        html.Summary('Facebook events'),          
+        html.Div([                               
+            html.Button('Comment', id='Comment_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('External Link', id='Click_button', n_clicks=0, style={"margin-left": "10px"}),           
+            html.Button('Like', id='Like_button', n_clicks=0, style={"margin-left": "10px"}),                 
+            html.Button('Typing', id='Typing_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Share', id='Share_button', n_clicks=0, style={"margin-left": "10px"}),     
+        ]),            
+    ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
 
-        html.Details([
-            html.Summary('Youtube events'),
-            html.Div([
-                html.Button('Comment', id='Comment3_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Watch', id='Watch3_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Typing', id='Typing3_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Click on video', id='Click3_button', n_clicks=0, style={"margin-left": "10px"}),     
-            ]),            
-        ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
+    html.Details([
+        html.Summary('Instagram events'),
+        html.Div([
+            html.Button('Comment', id='Comment2_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('External Link', id='Click2_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Like', id='Like2_button', n_clicks=0, style={"margin-left": "10px"}),                 
+            html.Button('Typing', id='Typing2_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Share', id='Share2_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Story', id='Story2_button', n_clicks=0, style={"margin-left": "10px"}),     
+        ]),            
+    ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
 
-        html.Div(
-            html.Div([
-                html.P("Discuss Reason：", style={'fontSize':18}),
-                dcc.Input(
-                    id='Discuss_text',
-                    type='text',
-                    style={'width':'100px'}
-                ),
-                html.Button('Record', id='Discuss_button', n_clicks=0, style={"margin-left": "10px"}),
-                html.Button('Previous Step', id='Recovery_button', n_clicks=0, style={"margin-left": "20px"}),
-                dcc.Download( id="download_file"),
-                html.Button('Output File', id='Output_file', n_clicks=0, style={"margin-left": "10px"}), 
-                html.B(id="button_result", style={'fontSize':16, "margin-left": "10px"}),
-            ], style={'display': 'flex', 'flex-direction': 'row','margin-left': '10px', 'margin-top': '10px'}),           
-        ),
-    ]),
+    html.Details([
+        html.Summary('Youtube events'),
+        html.Div([
+            html.Button('Comment', id='Comment3_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Watch', id='Watch3_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Typing', id='Typing3_button', n_clicks=0, style={"margin-left": "10px"}),
+            html.Button('Click on video', id='Click3_button', n_clicks=0, style={"margin-left": "10px"}),     
+        ]),      
+    ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
     
+    html.Div(
+        html.B(id="button_result", style={'fontSize':16, "margin-left": "10px"}),
+        style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'},
+    ),
+
     html.Div(
         dcc.Link('Go to coding mode', href='/coding')
     ,style={'display': 'none', 'vertical-align':'bottom','margin-left': '20px', 'margin-top': '10px'}),
+    
     html.Div(
         dcc.Graph(
             id='stacked-bar',
             config={"displayModeBar": False},
             style={'height': '35vh'}
         )
-    ,style={ 'width': '100%','margin-top': '10px'}),
+    ,style={ 'width': '100%','margin-top': '30px'}),
         
     html.Div(
        html.Div([
                 html.B(id="post_num", style={'fontSize':16}),
             ])
-        , style={'width': '20%', 'display': 'inline-block', 'margin-left': '10px', 'margin-top': '10px'}
+        , style={'width': '20%', 'display': 'inline-block', 'margin-left': '10px', 'margin-top': '30px'}
     ),
     
     html.Div([
-            html.Div(html.P("", id = "post_content"), style={'width': '15%', "height": "60vh", "overflow": "scroll", 'margin-left': '10px', 'display': 'inline-block', 'flex':1, "margin-bottom": "15px",'fontSize':18}),
-            html.Div(id='img-content', style={"margin-bottom": "15px", "height": "60vh", "overflow": "scroll", 'flex':5, 'text-align':'center'})
+            html.Div(html.P("", id = "post_content"), style={'width': '15%', "height": "60vh", "overflow": "scroll", 'margin-left': '10px', 'display': 'none', 'flex':1, "margin-bottom": "15px",'fontSize':18}),
+            html.Div(id='img-content', style={"margin-bottom": "15px", "overflow": "scroll", 'flex':5, 'text-align':'center'})
         ]
     ,style={'display': 'flex', 'flex-direction': 'row'}),        
 
@@ -1057,7 +1058,8 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
         msg = 'Select some bars to start'
 
         stacked_fig = draw_barchart(stacked_dataframe, None)
-
+        print(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "")
+        print(len(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "")))
         if len(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "")) == 0:
             SaveDataframe(global_user, port_file, stacked_dataframe)
         
