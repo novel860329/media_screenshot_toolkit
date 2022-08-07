@@ -26,11 +26,16 @@ from FigureUpdate import DeleteFigUpdate
 from FigureUpdate import SplitFigUpdate
 from FigureUpdate import DiscussFigUpdate
 from FigureUpdate import EventFigUpdate
+from FigureUpdateImage import CombineFigImageUpdate
+from FigureUpdateImage import DeleteFigImageUpdate
+from FigureUpdateImage import SplitFigImageUpdate
+from FigureUpdateImage import DiscussFigImageUpdate
+from FigureUpdateImage import EventFigImageUpdate
 from DB_operation import GetDataframe
 from DB_operation import GetHistory
 from DB_operation import SaveDataframe
 from DB_operation import SaveHistory
-
+import time
 # from CoderDataPreprocessingforDev import data_preprocess
 
 def extract_app_name(images):
@@ -92,7 +97,7 @@ questionnaire_id = "qid"
 image_appeared = "images"
 image_content = "context"
 visible_time = "visible time"
-port_number = 28031
+port_number = 8088
 stacked_fig = ""
 port_file = "port"+str(port_number) + "/" +"port_" + str(port_number)
 Select_post_num = []
@@ -147,43 +152,190 @@ for uid in User_data:
 
 Extra_column = ["app", "detect_time", "date", "discuss", "pid"]
 
-app.layout = html.Div([
-    dcc.Location(id='url', refresh=False),
-    html.Div(id='page-content')
+coding_layout = html.Div(className="row", children=[
+    dcc.Loading(
+        id="loading-2",
+        type="default",
+        children=html.Div(
+            dcc.Graph(
+                id='stacked-bar',
+                config={"displayModeBar": False},
+                style={'height': '30vh'}
+            )
+        ,style={ 'width': '100%','margin-top': '15px'}),    
+    ),
+        
+    html.Div(
+       html.Div([
+                html.B(id="post_num", style={'fontSize':16}),
+            ])
+        , style={'width': '20%', 'display': 'inline-block', 'margin-left': '10px', 'margin-top': '30px'}
+    ),
+    
+    html.Div([
+            html.Div(html.P("", id = "post_content"), style={'width': '15%', "height": "60vh", "overflow": "scroll", 'margin-left': '10px', 'display': 'none', 'flex':1, "margin-bottom": "15px",'fontSize':18}),
+            html.Div(id='img-content', style={"margin-bottom": "15px", "overflow": "scroll", 'flex':5, 'text-align':'center'})
+        ]
+    ,style={'display': 'flex', 'flex-direction': 'row'}),        
 ])
 
-coding_layout = html.Div(className="row", children=[
+image_layout = html.Div(className="imgrow", children=[
+    # html.Div([
+    #     html.Div([
+    #         dcc.Dropdown(
+    #             id='users-dropdown-image',
+    #             options=[{'label': i, 'value': i} for i in User_data],
+    #             value=""
+    #         )
+    #     ], style={'width': '7%', 'display': 'inline-block', 'vertical-align':'top','margin-left': '10px', 'margin-top': '10px'}),
+
+    #     html.Div([
+    #         html.Button('Combine', id='Merge_button-image', n_clicks=0, style={"margin-left": "10px"}),
+    #         html.Button('Delete', id='Delete_button-image', n_clicks=0, style={"margin-left": "10px"}),
+    #         html.Button('Split', id='Split_button-image', n_clicks=0, style={"margin-left": "10px"}),
+    #         html.Button('News', id='News_button-image', n_clicks=0, style={"margin-left": "10px"}),
+    #     ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '10px'}),
+
+    #     html.Div([
+    #         html.P("Discuss Reason：", style={'fontSize':18}),
+    #         dcc.Input(
+    #             id='Discuss_text-image',
+    #             type='text',
+    #             style={'width':'20%'}
+    #         ),
+    #         html.Button('Record', id='Discuss_button-image', n_clicks=0, style={"margin-left": "10px"}),
+    #         html.Button('Previous Step', id='Recovery_button-image', n_clicks=0, style={"margin-left": "20px"}),
+    #         dcc.Download( id="download_file-image"),
+    #         html.Button('Output File', id='Output_file-image', n_clicks=0, style={"margin-left": "10px"}), 
+    #     ], style={'display': 'flex', 'flex-direction': 'row','margin-left': '10px', 'margin-top': '10px'}),           
+    # ], style={'display': 'flex', 'flex-direction': 'row'}),
+    
+    # html.Details([
+    #     html.Summary('Facebook events'),          
+    #     html.Div([                               
+    #         html.Button('Comment', id='Comment_button-image', n_clicks=0, style={"margin-left": "10px"}),
+    #         html.Button('External Link', id='Click_button-image', n_clicks=0, style={"margin-left": "10px"}),           
+    #         html.Button('Like', id='Like_button-image', n_clicks=0, style={"margin-left": "10px"}),                 
+    #         html.Button('Typing', id='Typing_button-image', n_clicks=0, style={"margin-left": "10px"}),
+    #         html.Button('Share', id='Share_button-image', n_clicks=0, style={"margin-left": "10px"}),     
+    #     ]),            
+    # ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
+
+    # html.Details([
+    #     html.Summary('Instagram events'),
+    #     html.Div([
+    #         html.Button('Comment', id='Comment2_button-image', n_clicks=0, style={"margin-left": "10px"}),
+    #         html.Button('External Link', id='Click2_button-image', n_clicks=0, style={"margin-left": "10px"}),
+    #         html.Button('Like', id='Like2_button-image', n_clicks=0, style={"margin-left": "10px"}),                 
+    #         html.Button('Typing', id='Typing2_button-image', n_clicks=0, style={"margin-left": "10px"}),
+    #         html.Button('Share', id='Share2_button-image', n_clicks=0, style={"margin-left": "10px"}),
+    #         html.Button('Story', id='Story2_button-image', n_clicks=0, style={"margin-left": "10px"}),     
+    #     ]),            
+    # ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
+
+    # html.Details([
+    #     html.Summary('Youtube events'),
+    #     html.Div([
+    #         html.Button('Comment', id='Comment3_button-image', n_clicks=0, style={"margin-left": "10px"}),
+    #         html.Button('Watch', id='Watch3_button-image', n_clicks=0, style={"margin-left": "10px"}),
+    #         html.Button('Typing', id='Typing3_button-image', n_clicks=0, style={"margin-left": "10px"}),
+    #         html.Button('Click on video', id='Click3_button-image', n_clicks=0, style={"margin-left": "10px"}),     
+    #     ]),            
+    # ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
+    
+    # html.Div(
+    #     html.B(id="button_result-image", style={'fontSize':16, "margin-left": "10px"}),
+    #     style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'},
+    # ),
+
+    dcc.Loading(
+        id="loading-1",
+        type="default",
+        children=html.Div(
+            dcc.Graph(
+                id='stacked-bar-image',
+                config={"displayModeBar": False}
+                # style={'height': '70vh'}
+            )
+        ,style={ 'width': '100%','margin-top': '15px'}),    
+    ),
+
+    # html.Div([
+    #     html.Div(
+    #         dash_table.DataTable(id='correct_history-image',
+    #         style_cell={
+    #             'overflow-y': 'hidden',
+    #             'textOverflow': 'ellipsis',
+    #             'fontSize':16,
+    #             'minWidth': '50px', 'width': '50px', 'maxWidth': '50px',
+    #             'textAlign': 'center'
+    #         },
+    #         style_table={'minWidth': '100%', 'width': '100%', 'maxWidth': '100%', 'maxHeight': '500px', 'overflowY': 'scroll'},
+    #         style_data={
+    #             'whiteSpace': 'normal'
+    #         },
+    #     )
+    #     , style={'width': '50%', 'margin-left': '10px', 'display': 'inline-block'}),
+    #     html.Div(dcc.Markdown(s(description)), style={'width': '50%', "height": "500px", 'margin-left': '20px', 'display': 'inline-block', 'fontSize': 20})]
+    # ,style={'display': 'flex', 'flex-direction': 'row',  "margin-bottom": "15px", "margin-top": "15px"}),  
+
+    # html.P(id='placeholder-image'),
+    # html.P(id='ph_for_select-image')
+])
+
+tabs_styles = {'zIndex': 99, 'display': 'inlineBlock', 'height': '5vh', 'width': '50vw',
+             'border-radius': '4px', "margin-top": "20px", "margin-left": "10px"}
+
+tab_style = {
+    'font-size': '15px',
+    'font-weight': 600,
+    'align-items': 'center',
+    'justify-content': 'center',
+    'border-radius': '4px',
+    'padding':'4px'
+}
+
+tab_selected_style = {
+    'font-size': '15px',
+    'font-weight': 600,
+    'align-items': 'center',
+    'justify-content': 'center',
+    'border-radius': '4px',
+    'padding':'4px'
+}
+app.layout = html.Div([
     html.Div([
         html.Div([
             dcc.Dropdown(
                 id='users-dropdown',
                 options=[{'label': i, 'value': i} for i in User_data],
-                value=""
+                value="",
             )
-        ], style={'width': '7%', 'display': 'inline-block', 'vertical-align':'top','margin-left': '10px', 'margin-top': '10px'}),
+        ],style={'width': '7%', 'display': 'inline-block', 'vertical-align':'top','margin-left': '10px', 'margin-top': '10px'}),
             
         html.Div([
             html.Button('Combine', id='Merge_button', n_clicks=0, style={"margin-left": "10px"}),
             html.Button('Delete', id='Delete_button', n_clicks=0, style={"margin-left": "10px"}),
             html.Button('Split', id='Split_button', n_clicks=0, style={"margin-left": "10px"}),
             html.Button('News', id='News_button', n_clicks=0, style={"margin-left": "10px"}),
-        ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '10px'}),
+        ], style={'display': 'inline-block', 'vertical-align':'top', 'margin-top': '10px'}),
 
         html.Div([
             html.P("Discuss Reason：", style={'fontSize':18}),
             dcc.Input(
                 id='Discuss_text',
                 type='text',
-                style={'width':'20%'}
+                style={'width':'10%'}
             ),
             html.Button('Record', id='Discuss_button', n_clicks=0, style={"margin-left": "10px"}),
             html.Button('Previous Step', id='Recovery_button', n_clicks=0, style={"margin-left": "20px"}),
             dcc.Download( id="download_file"),
-            html.Button('Output File', id='Output_file', n_clicks=0, style={"margin-left": "10px"}), 
-        ], style={'display': 'flex', 'flex-direction': 'row','margin-left': '10px', 'margin-top': '10px'}),                      
+            html.Button('Output', id='Output_file', n_clicks=0, style={"margin-left": "10px"}), 
+        ], style={'display': 'flex', 'flex-direction': 'row', 'margin-left': '10px', 'margin-top': '10px'}),
+                        
     ], style={'display': 'flex', 'flex-direction': 'row'}),
 
-     html.Details([
+    html.Details([
         html.Summary('Facebook events'),          
         html.Div([                               
             html.Button('Comment', id='Comment_button', n_clicks=0, style={"margin-left": "10px"}),
@@ -221,30 +373,20 @@ coding_layout = html.Div(className="row", children=[
         style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'},
     ),
 
-    html.Div(
-        dcc.Link('Go to coding mode', href='/coding')
-    ,style={'display': 'none', 'vertical-align':'bottom','margin-left': '20px', 'margin-top': '10px'}),
-    
-    html.Div(
-        dcc.Graph(
-            id='stacked-bar',
-            config={"displayModeBar": False},
-            style={'height': '25vh'}
-        )
-    ,style={ 'width': '100%','margin-top': '30px'}),
-        
-    html.Div(
-       html.Div([
-                html.B(id="post_num", style={'fontSize':16}),
-            ])
-        , style={'width': '20%', 'display': 'inline-block', 'margin-left': '10px', 'margin-top': '30px'}
-    ),
-    
     html.Div([
-            html.Div(html.P("", id = "post_content"), style={'width': '15%', "height": "60vh", "overflow": "scroll", 'margin-left': '10px', 'display': 'none', 'flex':1, "margin-bottom": "15px",'fontSize':18}),
-            html.Div(id='img-content', style={"margin-bottom": "15px", "overflow": "scroll", 'flex':5, 'text-align':'center'})
-        ]
-    ,style={'display': 'flex', 'flex-direction': 'row'}),        
+        dcc.Tabs(id="tabs-graph", value='bar-list', children=[
+            dcc.Tab(label='Bar list mode', value='bar-list', children=[
+                coding_layout
+            ], style=tab_style, selected_style=tab_selected_style),
+            # style={"font-size":"15px","font-weight": "bold", "justify-content":"center",'align-items': 'center', 'textAlign': 'center', 'padding':'6px'},
+            # selected_style={"font-size":"15px","font-weight": "bold", "justify-content":"center", 'align-items': 'center', 'textAlign': 'center', 'padding':'6px'}),
+
+            dcc.Tab(label='Image list mode', value='img-list', children=[
+                image_layout
+            ], style=tab_style, selected_style=tab_selected_style)
+        ], style=tabs_styles) 
+        # style={'display': 'inline-block',  "margin-left": "10px", "margin-top": "10px", "height":"5vh",'position': 'fixed'}),
+    ]),
 
     html.Div([
         html.Div(
@@ -266,7 +408,7 @@ coding_layout = html.Div(className="row", children=[
     ,style={'display': 'flex', 'flex-direction': 'row',  "margin-bottom": "15px", "margin-top": "15px"}),  
 
     html.P(id='placeholder'),
-    html.P(id='ph_for_select')
+    html.P(id='placeholder-image'),
 ])
 
 def nonvisual_bottombar(picture_number, non_visual_costomdata):
@@ -314,20 +456,20 @@ def draw_barchart(df, sliderrange):
     fig = go.Figure()
 
     ### assign repeat post group color
-    repeat_post = scatter_dataframe['repeat'].unique().tolist()
-    repeat_post.remove(0)
-    repeat_post = sorted(repeat_post)
-    post_color = {}
-    color_index = 0
-    for i, post_id in enumerate(repeat_post):
-        if i >= len(repeat_post) - 1:
-            post_color[post_id] = repeat_post_color[color_index % len(repeat_post_color)]
-            continue
-        if repeat_post[i + 1] - repeat_post[i] > 1:
-            post_color[post_id] = repeat_post_color[color_index % len(repeat_post_color)]
-            color_index += 1
-        else:
-            post_color[post_id] = repeat_post_color[color_index % len(repeat_post_color)]
+    # repeat_post = scatter_dataframe['repeat'].unique().tolist()
+    # repeat_post.remove(0)
+    # repeat_post = sorted(repeat_post)
+    # post_color = {}
+    # color_index = 0
+    # for i, post_id in enumerate(repeat_post):
+    #     if i >= len(repeat_post) - 1:
+    #         post_color[post_id] = repeat_post_color[color_index % len(repeat_post_color)]
+    #         continue
+    #     if repeat_post[i + 1] - repeat_post[i] > 1:
+    #         post_color[post_id] = repeat_post_color[color_index % len(repeat_post_color)]
+    #         color_index += 1
+    #     else:
+    #         post_color[post_id] = repeat_post_color[color_index % len(repeat_post_color)]
 
     prev_img = "none"
     for i in range(len(scatter_dataframe) - 1, -1, -1):
@@ -339,7 +481,7 @@ def draw_barchart(df, sliderrange):
         detect_time = scatter_dataframe['detect_time'][i]
         qid = scatter_dataframe['qid'][i]
         row_index = scatter_dataframe['row_index'][i]
-        repeat = scatter_dataframe['repeat'][i]
+        # repeat = scatter_dataframe['repeat'][i]
 
         shape = ""
         for col in event_col:
@@ -399,25 +541,25 @@ def draw_barchart(df, sliderrange):
             fig.add_trace(top_bar)
 
         ### repeat post color line
-        if repeat != 0 or code_id in post_color:
-            if repeat != 0:
-                post_index = repeat
-            elif code_id in post_color:
-                post_index = code_id
-            line = go.Scatter(x=[int(picture_number), int(picture_number) + 1], y=[1.35, 1.35],
-                    line=dict(color=post_color[post_index], width=4),
-                    name="-1",
-                    customdata=[[code_id, detect_time, qid, row_index, picture_number] for i in range(2)],
-                    mode='lines',
-                    hovertemplate="<br>".join([
-                        "Repeat post",
-                        "detect time=%{customdata[1]}",
-                        "questionnaire id=%{customdata[2]}",
-                        "row index=%{customdata[3]}", 
-                        "picture number=%{customdata[4]}", 
-                        ]),
-                    )
-            fig.add_trace(line)
+        # if repeat != 0 or code_id in post_color:
+        #     if repeat != 0:
+        #         post_index = repeat
+        #     elif code_id in post_color:
+        #         post_index = code_id
+        #     line = go.Scatter(x=[int(picture_number), int(picture_number) + 1], y=[1.35, 1.35],
+        #             line=dict(color=post_color[post_index], width=4),
+        #             name="-1",
+        #             customdata=[[code_id, detect_time, qid, row_index, picture_number] for i in range(2)],
+        #             mode='lines',
+        #             hovertemplate="<br>".join([
+        #                 "Repeat post",
+        #                 "detect time=%{customdata[1]}",
+        #                 "questionnaire id=%{customdata[2]}",
+        #                 "row index=%{customdata[3]}", 
+        #                 "picture number=%{customdata[4]}", 
+        #                 ]),
+        #             )
+        #     fig.add_trace(line)
 
         prev_img = img
 
@@ -447,8 +589,8 @@ def draw_barchart(df, sliderrange):
                         source=source[event],
                         xref="x",
                         yref="y",
-                        sizex=0.6,
-                        sizey=0.6,
+                        sizex=0.4,
+                        sizey=0.4,
                         xanchor="center",
                         yanchor="middle",
                         sizing="contain",
@@ -652,9 +794,183 @@ def display_image(n_click0, n_click1, n_click2, n_click3, n_click4):
             return dash.no_update, dash.no_update, dash.no_update, dash.no_update, {'width': "15%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}
     return dash.no_update
 
+width = 0
+height = 0
+image_width = 5
+stacked_layout_img = []
+prev_selection_img = {}
+stacked_fig_img = ""
+Select_post_num_img = []
+Select_picture_num_img = []
+Select_row_index_img = []
+def draw_imgchart(df, sliderrange, uid):
+    global width, height
+    if not df.empty:
+        scatter_dataframe = df.drop(df.loc[df['visible time'] == -1].index, inplace=False)
+        scatter_dataframe.reset_index(inplace = True, drop = True)
+    pos_x = []
+
+    fig = go.Figure()
+    
+    ### read image and display
+    uid = uid.split("-")[0] if "-" in uid else uid
+    temp_path = os.listdir(ROOT_PATH + "/" + uid)
+    images = list(dict.fromkeys(scatter_dataframe['images'].tolist()))
+    images.reverse()
+    for i, image in enumerate(images):
+        q_id = scatter_dataframe[scatter_dataframe['images'] == image].iloc[0]['qid']
+        picture_number = scatter_dataframe[scatter_dataframe['images'] == image].iloc[0]['picture_number'] 
+        img = Image.open(ROOT_PATH + uid + "/" + temp_path[0] + "/NewInterval/" + str(q_id) + "/" + image)
+        width, height = img.size
+        y_size = height * image_width / width
+        x_axis = picture_number + (int(picture_number) - 1) * image_width
+
+        fig.add_layout_image(
+            x=x_axis,
+            y=y_size/2 - y_size*0.13,
+            source=img,
+            xref="x",
+            yref="y",
+            sizex=image_width,
+            sizey=y_size,
+            xanchor="center",
+            yanchor="middle",
+            sizing="contain",
+            layer="below",
+            visible=True,
+        )
+        row_list = scatter_dataframe.loc[scatter_dataframe['images'] == image]['row_index'].tolist()
+        row_list.reverse()
+
+        for j, row_index in enumerate(row_list):
+            code_id = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['code_id']
+            percent = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['percent']
+            picture_number = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['picture_number']
+            color = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['color']
+            detect_time = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['detect_time']
+            qid = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['qid']
+
+            shape = ""
+            for col in event_col:
+                shape = shape + str(scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0][col])    
+            
+            shape = int(shape, 2) ### "6"
+
+            shape_bin = bin(shape)[2:][::-1] ### [0,1,1]
+            binary1_index = []
+            for j, binary in enumerate(shape_bin):
+                if binary == '1':
+                    binary1_index.append(j) ### [1, 2]
+
+            event = ""
+            bin_index_len = len(binary1_index)
+            if bin_index_len == 0:
+                event = "post"
+            for j in range(bin_index_len):
+                if j == bin_index_len - 1:
+                    event = event + event_map[binary1_index[j]]
+                else:
+                    event = event + event_map[binary1_index[j]] + "&"
+
+            bar = go.Bar(
+                name=str(code_id),
+                y=[y_size * percent],
+                x=[x_axis],
+                marker=dict(color="rgba(0,0,0,0)",line=dict(
+                    color=color,
+                    width=3.5
+                )),
+                width=[image_width],
+                customdata=[[code_id, detect_time, qid, row_index, picture_number, event, round(percent, 2)]],
+                hovertemplate="<br>".join([
+                    "post_number=%{customdata[0]}",
+                    "detect time=%{customdata[1]}",
+                    "questionnaire id=%{customdata[2]}",
+                    "percent=%{customdata[6]}",
+                    "row index=%{customdata[3]}", 
+                    "picture number=%{customdata[4]}", 
+                    "event=%{customdata[5]}",                           
+                    ]),
+                unselected=dict(marker=dict(opacity=0.5))
+            )
+            fig.add_trace(bar)
+
+    x_dict = defaultdict(list)
+    for j, row in scatter_dataframe.iterrows():
+        shape = ""
+        for col in event_col:
+            shape = shape + str(row[col])           
+        shape = int(shape, 2) ### "6"
+        picture_number = row['picture_number']
+        x_dict[int(picture_number) + (int(picture_number) - 1) * image_width].append(shape)
+    for x_axis, shape_events in x_dict.items():
+        shape = FindImgEvent(shape_events)
+        shape_bin = bin(shape)[2:][::-1]
+        binary1_index = []
+        for j, binary in enumerate(shape_bin):
+            if binary == '1':
+                binary1_index.append(j)
+
+        if shape != 0:
+            y_axis = y_size + 0.5 - y_size*0.13
+            for j in range(len(binary1_index)):
+                event = event_map[binary1_index[j]]
+                fig.add_layout_image(
+                        x=x_axis,
+                        y=y_axis,
+                        source=source[event],
+                        xref="x",
+                        yref="y",
+                        sizex=0.5,
+                        sizey=0.5,
+                        xanchor="center",
+                        yanchor="middle",
+                        sizing="contain",
+                        layer="above",
+                        visible=True,
+                    )
+                y_axis += 0.5
+
+    if sliderrange is None:
+        figure_x = int(fig.layout['images'][0]['x'])
+        sliderrange = [0, 100]
+
+    fig.update_layout(
+        barmode="stack",
+        uniformtext=dict(mode="hide", minsize=10),
+        showlegend=False,
+        xaxis=dict(
+            rangeslider=dict(visible=True, thickness=0.1),
+            range = sliderrange,
+            type="linear",
+            scaleanchor="y",
+            showgrid=False
+        ),
+        clickmode="event+select",
+        dragmode='select',
+    )
+
+    # fig.update_yaxes(showticklabels=True, range=[0, y_size + 5], scaleanchor="x", constrain="domain", constraintoward = "top", showgrid=False)
+    fig.update_yaxes(showticklabels=False, scaleanchor="x", showgrid=False)
+
+    fig.update(layout = go.Layout(margin=dict(t=0,r=0,b=0,l=0)))
+
+    qid_list = scatter_dataframe['qid'].tolist()
+    post_list = scatter_dataframe['picture_number'].tolist()
+    j = 0
+    for i in range(len(qid_list) - 1):
+        if qid_list[i] != qid_list[i + 1]:
+            pos_x.append((post_list[i] + (post_list[i] - 1) * image_width + post_list[i] + (post_list[i] - 1) * image_width) / 2 + image_width / 2)
+        j += 1
+    for x in pos_x:
+        fig.add_vline(x=x, line_width=1, line_dash="dash", line_color="black")
+
+    return fig
+
 @callback(
     [Output('button_result', 'children'),
     Output('stacked-bar', 'figure'),
+    Output('stacked-bar-image', 'figure'),
     Output('users-dropdown', 'value'),
     Output(component_id='correct_history', component_property='data'),
     Output(component_id='correct_history', component_property='columns')],
@@ -672,67 +988,171 @@ def display_image(n_click0, n_click1, n_click2, n_click3, n_click4):
     Input('Typing_button', 'n_clicks'),
     Input('Like_button', 'n_clicks'),
     Input('Share_button', 'n_clicks'),
-    Input('stacked-bar', 'selectedData')],
+    Input('stacked-bar', 'selectedData'),
+    Input('stacked-bar-image', 'selectedData'),
+    Input('tabs-graph', 'value')],
     State('stacked-bar', 'relayoutData'),
+    State('stacked-bar-image', 'relayoutData'),
+    State('tabs-graph', 'value')
 )
-def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn, file_btn, recovery_btn, comment_btn, click_btn,  news_btn, typing_btn, like_btn, share_btn, stacked_select, stacked_relayout): 
-    global global_user, stacked_layout, stacked_fig, prev_selection, Select_row_index
+def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn, file_btn, recovery_btn, comment_btn, click_btn,  news_btn, typing_btn, like_btn, share_btn, stacked_select, stacked_select_img, tab_value, stacked_relayout, stacked_relayout_img, tab_state): 
+    global global_user, stacked_layout, stacked_fig, prev_selection, Select_row_index,\
+    stacked_layout_img, stacked_fig_img, prev_selection_img, Select_row_index_img, width, height
 
     changed_id = [p['prop_id'] for p in callback_context.triggered][0]
 
-    if 'stacked-bar' in changed_id:
-        bar_list = []
-        if stacked_select is None:
-            return "Not select bar yet", dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    if "tabs-graph" in changed_id:
+        # if stacked_layout is None and stacked_layout_img is None:
+        #     return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        
+        if tab_value == 'bar-list': # 從v2切到v1
+            if stacked_layout_img is None:
+                return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+            elif 'xaxis.range' not in stacked_layout_img:
+                return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
-        Select_row_index = []
-        for bar in stacked_select['points']:
-            bar_id = bar['curveNumber'] 
-            Select_row_index.append(int(bar['customdata'][3]))
-            stacked_fig.data[bar_id].marker.line.width = 3.5
-            stacked_fig.data[bar_id].marker.line.color = "#FFD700"
-            bar_list.append(bar_id)
-
-        Select_row_index = sorted(Select_row_index)
-
-        max_data_index = len(stacked_fig.data) - 1
-
-        for i in prev_selection:
-            if i > max_data_index:
-                continue
-            if i not in bar_list:
-                stacked_fig.data[i].marker.line.width = 0
-
-        if stacked_layout is None:
+            x0 = stacked_layout_img['xaxis.range'][0]
+            x1 = stacked_layout_img['xaxis.range'][1]
+            middle = (x0 + x1) / (image_width + 1) / 2
             stacked_fig.update_layout(
                 xaxis=dict(
                     rangeslider=dict(visible=True),
-                    range = [0, 50],
+                    range = [middle - 20, middle + 20],
                     type="linear"
                 )
             )
-        elif 'xaxis.range' in stacked_layout:
-            stacked_fig.update_layout(
-                xaxis=dict(
-                    rangeslider=dict(visible=True),
-                    range = [stacked_layout['xaxis.range'][0], stacked_layout['xaxis.range'][1]],
-                    type="linear"
-                )
-            )
+            return dash.no_update, stacked_fig, dash.no_update, dash.no_update, dash.no_update, dash.no_update
         else:
-            stacked_fig.update_layout(
+            if stacked_layout is None:
+                return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+            elif 'xaxis.range' not in stacked_layout:
+                return dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+
+            x0 = stacked_layout['xaxis.range'][0]
+            x1 = stacked_layout['xaxis.range'][1]
+            middle = (x0 + x1) * (image_width + 1) / 2
+            stacked_fig_img.update_layout(
                 xaxis=dict(
                     rangeslider=dict(visible=True),
-                    range = [0, 50],
+                    range = [middle - 30, middle + 30],
                     type="linear"
                 )
-            )        
-        prev_selection = bar_list
-        return "You select " + str(len(Select_row_index)) + " bars", stacked_fig, dash.no_update, dash.no_update, dash.no_update
+            )
+            return dash.no_update, dash.no_update, stacked_fig_img, dash.no_update, dash.no_update, dash.no_update
 
+    if 'stacked-bar' in changed_id:
+        if tab_state == "bar-list":
+            bar_list = []
+            if stacked_select is None:
+                return "Not select bar yet", dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+
+            Select_row_index = []
+            for bar in stacked_select['points']:
+                bar_id = bar['curveNumber'] 
+                Select_row_index.append(int(bar['customdata'][3]))
+                stacked_fig.data[bar_id].marker.line.width = 3.5
+                stacked_fig.data[bar_id].marker.line.color = "#FFD700"
+                bar_list.append(bar_id)
+
+            Select_row_index = sorted(Select_row_index)
+
+            max_data_index = len(stacked_fig.data) - 1
+
+            for i in prev_selection:
+                if i > max_data_index:
+                    continue
+                if i not in bar_list:
+                    stacked_fig.data[i].marker.line.width = 0
+
+            if stacked_layout is None:
+                stacked_fig.update_layout(
+                    xaxis=dict(
+                        rangeslider=dict(visible=True),
+                        range = [0, 50],
+                        type="linear"
+                    )
+                )
+            elif 'xaxis.range' in stacked_layout:
+                stacked_fig.update_layout(
+                    xaxis=dict(
+                        rangeslider=dict(visible=True),
+                        range = [stacked_layout['xaxis.range'][0], stacked_layout['xaxis.range'][1]],
+                        type="linear"
+                    )
+                )
+            else:
+                stacked_fig.update_layout(
+                    xaxis=dict(
+                        rangeslider=dict(visible=True),
+                        range = [0, 50],
+                        type="linear"
+                    )
+                )        
+            prev_selection = bar_list
+            return "You select " + str(len(Select_row_index)) + " bars", stacked_fig, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        else:
+            bar_list = {}
+            if stacked_select_img is None:
+                return "Not select bar yet", dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+
+            Select_row_index_img = []
+            for bar in stacked_select_img['points']:
+                bar_id = bar['curveNumber'] 
+                Select_row_index_img.append(int(bar['customdata'][3]))
+                bar_list[bar_id] = stacked_fig_img.data[bar_id].marker.line.color
+                stacked_fig_img.data[bar_id].marker.line.width = 3.5
+                stacked_fig_img.data[bar_id].marker.line.color = "#FFD700"
+
+            Select_row_index_img = sorted(Select_row_index_img)
+
+            max_data_index = len(stacked_fig_img.data) - 1
+
+            for bar_id, color in prev_selection_img.items():
+                if bar_id > max_data_index:
+                    continue
+                if bar_id not in bar_list.keys():
+                    stacked_fig_img.data[bar_id].marker.line.color = color
+
+            if stacked_layout_img is None:
+                sliderrange = [0, 100]
+                stacked_fig_img.update_layout(
+                    xaxis=dict(
+                        rangeslider=dict(visible=True, thickness=0.1),
+                        range = sliderrange,
+                        type="linear",
+                        scaleanchor="y",
+                        showgrid=False
+                    )
+                )
+            elif 'xaxis.range' in stacked_layout_img:
+                stacked_fig_img.update_layout(
+                    xaxis=dict(
+                        rangeslider=dict(visible=True, thickness=0.1),
+                        range = [stacked_layout_img['xaxis.range'][0], stacked_layout_img['xaxis.range'][1]],
+                        type="linear",
+                        scaleanchor="y",
+                        showgrid=False
+                    )
+                )
+            else:
+                sliderrange = [0, 100]
+                stacked_fig_img.update_layout(
+                    xaxis=dict(        
+                        rangeslider=dict(visible=True, thickness=0.1),
+                        range = sliderrange,
+                        type="linear",
+                        scaleanchor="y",
+                        showgrid=False
+                    )
+                )        
+            prev_selection_img = bar_list
+            return "You select " + str(len(Select_row_index_img)) + " bars", dash.no_update, stacked_fig_img, dash.no_update, dash.no_update, dash.no_update 
+    
     if stacked_layout == []:
         stacked_layout = stacked_relayout
-    
+    if stacked_layout_img == []:
+        stacked_layout_img = stacked_relayout_img
+
     if (uid == '' or uid is None) and global_user == 0: #最一開始開這個網頁的時候
         fig = {
             "layout": {
@@ -756,7 +1176,7 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
             }
         }
         columns = [{'name': col, 'id': col} for col in history_column]
-        return "Choose one user number", fig, dash.no_update, [{}], columns
+        return "Choose one user number", fig, fig, dash.no_update, [{}], columns
     elif (uid == '' or uid is None) and global_user != 0 and global_user != "": #從visual mode回來的時後
         msg = 'Select some bars to start'
 
@@ -769,101 +1189,90 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
         else:
             stacked_fig = draw_barchart(stacked_dataframe, None)
         
+        if stacked_layout_img is None: 
+            stacked_fig_img = draw_imgchart(stacked_dataframe, None, global_user)
+        elif 'xaxis.range' in stacked_layout_img:
+            stacked_fig_img = draw_imgchart(stacked_dataframe, [stacked_layout_img['xaxis.range'][0], stacked_layout_img['xaxis.range'][1]], global_user)
+        else:
+            stacked_fig_img = draw_imgchart(stacked_dataframe, None, global_user)
+
         Record_table, columns = GetHistory(global_user, port_file)
-        # if os.path.exists(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json"): 
-        #     f = open(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json")
-        #     history = json.load(f)
-        #     columns = [{'name': col, 'id': col} for col in history_column]
-        #     if global_user in history:
-        #         return msg, stacked_fig, global_user, history[global_user], columns
-        #     else:
-        #         return msg, stacked_fig, global_user, [{}], columns
-        # else:
-        #     columns = [{'name': col, 'id': col} for col in history_column]
-        return msg, stacked_fig, global_user, Record_table, columns
+
+        return msg, stacked_fig, stacked_fig_img, global_user, Record_table, columns
     
     if uid != '' and uid is not None:
         global_user = uid
     if global_user != 0 and global_user != "":
         stacked_dataframe = GetDataframe(global_user, port_file)
-    else:
-        columns = [{'name': col, 'id': col} for col in history_column]
-        fig = {
-            "layout": {
-                "xaxis": {
-                    "visible": False
-                },
-                "yaxis": {
-                    "visible": False
-                },
-                "annotations": [
-                    {
-                        "text": "No data found",
-                        "xref": "paper",
-                        "yref": "paper",
-                        "showarrow": False,
-                        "font": {
-                            "size": 24
-                        }
-                    }
-                ]
-            }
-        }
-        return "Choose one user number", fig, global_user, [{}], columns
     
     stacked_dataframe.code_id = stacked_dataframe.code_id.astype(int)
 
     if 'Merge_button' in changed_id:
-        if Select_row_index == []:
+        if tab_state == "bar-list":
+            Selected_row = Select_row_index
+        else:
+            Selected_row = Select_row_index_img
+
+        if Selected_row == []:
              return "Must select some bars", dash.no_update, dash.no_update, dash.no_update, dash.no_update
         else:
             msg = "Bars has been combined"
         print(msg)
         
-        merge_to = Select_row_index[0]
+        merge_to = Selected_row[0]
         BaseDataframe = stacked_dataframe[stacked_dataframe['row_index'] == merge_to].iloc[0]
-        for row_index in Select_row_index:
+        for row_index in Selected_row:
             if row_index != merge_to:           
                 stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, 'color'] = BaseDataframe['color']
                 stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, 'code_id'] = BaseDataframe['code_id']
             post_number = stacked_dataframe[stacked_dataframe['row_index'] == row_index].iloc[0]['code_id']
-        # update_color_dataframe = stacked_dataframe[stacked_dataframe['code_id'] == int(BaseDataframe['code_id'])]
-        # for p_id in update_color_dataframe['picture_number'].tolist():
-        #     i = stacked_dataframe[stacked_dataframe['picture_number'] == int(p_id)]['percent'].idxmax()
-        #     stacked_dataframe.loc[i, 'color'] = ",".join(stacked_dataframe.loc[i, 'color'].split(",")[:3]) + ",1)"
 
         SaveDataframe(global_user, port_file, stacked_dataframe)
         
-        stacked_fig = CombineFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_layout)
+        stacked_fig_img, prev_selection_img = CombineFigImageUpdate(stacked_fig_img, stacked_dataframe, Selected_row, stacked_layout_img)
 
-        HistoryData, columns = SaveHistory(global_user, port_file, Select_row_index, "Combine")
+        stacked_fig = CombineFigUpdate(stacked_fig, stacked_dataframe, Selected_row, stacked_layout)
+
+        HistoryData, columns = SaveHistory(global_user, port_file, Selected_row, "Combine")
         
-        return msg, stacked_fig, dash.no_update, HistoryData, columns
+        return msg, stacked_fig, stacked_fig_img, dash.no_update, HistoryData, columns
     elif 'Delete_button' in changed_id:
-        if Select_row_index == []:
-             return "Must select some bars", dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        if tab_state == "bar-list":
+            Selected_row = Select_row_index
+        else:
+            Selected_row = Select_row_index_img
+
+        if Selected_row == []:
+             return "Must select some bars", dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
         else:
             msg = "Bars has been deleted"
         print(msg)
 
-        for row_index in Select_row_index:
+        for row_index in Selected_row:
             stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, 'visible time'] = -1
 
         SaveDataframe(global_user, port_file, stacked_dataframe)
 
-        stacked_fig = DeleteFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_layout, False)
+        stacked_fig = DeleteFigUpdate(stacked_fig, stacked_dataframe, Selected_row, stacked_layout, False)
         
-        HistoryData, columns = SaveHistory(global_user, port_file, Select_row_index, "Delete")
-        return msg, stacked_fig, dash.no_update, HistoryData, columns
+        stacked_fig_img = DeleteFigImageUpdate(stacked_fig_img, stacked_dataframe, Selected_row, stacked_layout_img, False)
+
+        HistoryData, columns = SaveHistory(global_user, port_file, Selected_row, "Delete")
+        return msg, stacked_fig, stacked_fig_img, dash.no_update, HistoryData, columns
     elif 'Split_button' in changed_id:
-        if Select_row_index == []:
-            return "Must select some bars", dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        if tab_state == "bar-list":
+            Selected_row = Select_row_index
+        else:
+            Selected_row = Select_row_index_img
+
+        if Selected_row == []:
+            return "Must select some bars", dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
         else:
             msg = "post has been splited"
         print(msg)
   
         Selected_post_number = []
-        for row_index in Select_row_index:
+        for row_index in Selected_row:
             post_id = stacked_dataframe[stacked_dataframe['row_index'] == row_index].iloc[0]['code_id']
             if not post_id in Selected_post_number:
                 Selected_post_number.append(post_id)
@@ -876,7 +1285,7 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
             base_index = stacked_dataframe[stacked_dataframe['code_id'] == int(post_number)].iloc[0]['picture_number']
             
             row_picture_number = []
-            for row_index in Select_row_index:
+            for row_index in Selected_row:
                 pic_id = stacked_dataframe[stacked_dataframe['row_index'] == row_index].iloc[0]['picture_number']
                 if not pic_id in row_picture_number:
                     row_picture_number.append(pic_id)
@@ -884,19 +1293,19 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
             max_row_index = stacked_dataframe['row_index'].max()
             
             code_id_dict = {}
-            max_code_id = stacked_dataframe.loc[(stacked_dataframe['row_index'] >= 0) & (stacked_dataframe['row_index'] < Select_row_index[0]), 'code_id'].max()
+            max_code_id = stacked_dataframe.loc[(stacked_dataframe['row_index'] >= 0) & (stacked_dataframe['row_index'] < Selected_row[0]), 'code_id'].max()
 
-            for j in range(Select_row_index[0], max_row_index + 1):
+            for j in range(Selected_row[0], max_row_index + 1):
                 row_index = stacked_dataframe[stacked_dataframe['row_index'] == j].iloc[0]['row_index']
                 code_id = stacked_dataframe[stacked_dataframe['row_index'] == j].iloc[0]['code_id']
-                if j in Select_row_index:
+                if j in Selected_row:
                     origin_color = stacked_dataframe[stacked_dataframe['row_index'] == j].iloc[0]['color']
                     changed_color = ",".join(origin_color.split(",")[0:-1]) + ",0.3)"
                     stacked_dataframe.loc[stacked_dataframe['row_index'] == j, "color"] = changed_color
                 if code_id < int(post_number):
                     continue
                 if base_index == row_picture_number[0]:
-                    if row_index in Select_row_index:
+                    if row_index in Selected_row:
                         max_code_id = max(code_id, max_code_id)
                         if code_id not in code_id_dict and code_id != int(post_number):
                             code_id_dict[code_id] = max_code_id
@@ -908,7 +1317,7 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
                             code_id_dict[code_id] = max_code_id
                             stacked_dataframe.loc[stacked_dataframe['row_index'] == j, 'code_id'] = max_code_id
                 else:
-                    if row_index in Select_row_index:
+                    if row_index in Selected_row:
                         if code_id in code_id_dict:
                             stacked_dataframe.loc[stacked_dataframe['row_index'] == j, 'code_id'] = code_id_dict[code_id]
                             continue
@@ -940,45 +1349,58 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
 
         stacked_fig = SplitFigUpdate(stacked_fig, stacked_dataframe, post_number, stacked_layout)
         
+        stacked_fig_img, prev_selection_img = SplitFigImageUpdate(stacked_fig_img, stacked_dataframe, post_number, stacked_layout_img)
+        
         SaveDataframe(global_user, port_file, stacked_dataframe)
 
-        HistoryData, columns = SaveHistory(global_user, port_file, Select_row_index, "Split")
-        return msg, stacked_fig, dash.no_update, HistoryData, columns
+        HistoryData, columns = SaveHistory(global_user, port_file, Selected_row, "Split")
+        return msg, stacked_fig, stacked_fig_img, dash.no_update, HistoryData, columns
 
     elif 'Discuss_button' in changed_id:
+        if tab_state == "bar-list":
+            Selected_row = Select_row_index
+        else:
+            Selected_row = Select_row_index_img
 
-        if Select_row_index == []:
+        if Selected_row == []:
             return "Must select some bars", dash.no_update, dash.no_update, dash.no_update, dash.no_update
         else:
             msg = "Bars has been mark as discussion"
 
-        for row_index in Select_row_index:
+        for row_index in Selected_row:
             stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, 'discuss'] = 1
             stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, 'discuss_reason'] = discuss_text
             stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, 'color'] = "rgba(190,190,190,0.4)"
         print(msg)
 
-        stacked_fig = DiscussFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_layout)
+        stacked_fig = DiscussFigUpdate(stacked_fig, stacked_dataframe, Selected_row, stacked_layout)
+
+        stacked_fig_img, prev_selection_img = DiscussFigImageUpdate(stacked_fig_img, stacked_dataframe, Selected_row, stacked_layout_img)
 
         SaveDataframe(global_user, port_file, stacked_dataframe)
 
-        HistoryData, columns = SaveHistory(global_user, port_file, Select_row_index, "Discussion")
-        return msg, stacked_fig, dash.no_update, HistoryData, columns
+        HistoryData, columns = SaveHistory(global_user, port_file, Selected_row, "Discussion")
+        return msg, stacked_fig, stacked_fig_img, dash.no_update, HistoryData, columns
 
     elif 'Comment_button' in changed_id or 'Click_button' in changed_id or 'News_button' in changed_id or 'Typing_button' in changed_id \
         or 'Like_button' in changed_id or 'Share_button' in changed_id:
-        if Select_row_index == []:
-            return "Must select some bars", dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        if tab_state == "bar-list":
+            Selected_row = Select_row_index
+        else:
+            Selected_row = Select_row_index_img
+
+        if Selected_row == []:
+            return "Must select some bars", dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
         else:            
             for button, tup in Button_dict.items():
                 if button in changed_id:
                     col, button_name = tup
                     msg = "Bars has been marked as " + button_name 
 
-        old_value = stacked_dataframe[stacked_dataframe['row_index'] == Select_row_index[0]].iloc[0][col]
+        old_value = stacked_dataframe[stacked_dataframe['row_index'] == Selected_row[0]].iloc[0][col]
         new_value = old_value ^ 1
         
-        for row_index in Select_row_index:
+        for row_index in Selected_row:
             if col == "outer_link":
                 stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, col] = new_value
                 stacked_dataframe.loc[stacked_dataframe['row_index'] == row_index, "comment"] = 0
@@ -991,10 +1413,13 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
 
         SaveDataframe(global_user, port_file, stacked_dataframe)
 
-        stacked_fig = EventFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_layout)
+        stacked_fig = EventFigUpdate(stacked_fig, stacked_dataframe, Selected_row, stacked_layout)
 
-        HistoryData, columns = SaveHistory(global_user, port_file, Select_row_index, button_name)
-        return msg, stacked_fig, dash.no_update, HistoryData, columns
+        y_size = height * image_width / width
+        stacked_fig_img, prev_selection_img = EventFigImageUpdate(stacked_fig_img, stacked_dataframe, Selected_row, stacked_layout_img, y_size)
+
+        HistoryData, columns = SaveHistory(global_user, port_file, Selected_row, button_name)
+        return msg, stacked_fig, stacked_fig_img, dash.no_update, HistoryData, columns
     elif 'Recovery_button' in changed_id: 
         cache_file_list = sorted(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user))
         file_len = len(cache_file_list)
@@ -1034,32 +1459,41 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
                 columns = [{'name': col, 'id': col} for col in history_column]
                 if action == "Combine":
                     stacked_fig = CombineFigUpdate(stacked_fig, stacked_dataframe, row_number_list, stacked_layout)
+                    stacked_fig_img, prev_selection_img = CombineFigImageUpdate(stacked_fig_img, stacked_dataframe, row_number_list, stacked_layout_img)
                 elif action == "Delete":
+                    stacked_fig_img = DeleteFigImageUpdate(stacked_fig_img, stacked_dataframe, row_number_list, stacked_layout_img, True)
                     stacked_fig = DeleteFigUpdate(stacked_fig, stacked_dataframe, row_number_list, stacked_layout, True)
                 elif action == "Split":
                     post_number = stacked_dataframe[stacked_dataframe['row_index'] == row_number_list[0]].iloc[0]['code_id']
                     stacked_fig = SplitFigUpdate(stacked_fig, stacked_dataframe, int(post_number), stacked_layout)
+                    stacked_fig_img, prev_selection_img = SplitFigImageUpdate(stacked_fig_img, stacked_dataframe, int(post_number), stacked_layout_img)
                 elif action == "Discussion":
                     stacked_fig = DiscussFigUpdate(stacked_fig, stacked_dataframe, row_number_list, stacked_layout)
+                    stacked_fig_img, prev_selection_img = DiscussFigImageUpdate(stacked_fig_img, stacked_dataframe, row_number_list, stacked_layout_img)
                 elif action in Event:
                     stacked_fig = EventFigUpdate(stacked_fig, stacked_dataframe, row_number_list, stacked_layout)
-
-                return msg, stacked_fig, dash.no_update, history[global_user] , columns
+                    y_size = height * image_width / width
+                    stacked_fig_img, prev_selection_img = EventFigImageUpdate(stacked_fig_img, stacked_dataframe, row_number_list, stacked_layout_img, y_size)
+                return msg, stacked_fig, stacked_fig_img, dash.no_update, history[global_user] , columns
                 
             else:
                 msg = "this is original file"
-                return msg, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+                return msg, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
         else:
             msg = "this is original file"
-            return msg, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+            return msg, dash.no_update, dash.no_update, dash.no_update, dash.no_update, dash.no_update
 
     if 'users-dropdown' in changed_id:
         print("users-dropdown")        
         msg = 'Select some bars to start'
 
         stacked_fig = draw_barchart(stacked_dataframe, None)
+
+        stacked_fig_img = draw_imgchart(stacked_dataframe, None, global_user)
+        
         print(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "")
         print(len(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "")))
+        
         if len(os.listdir(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/" + global_user + "")) == 0:
             SaveDataframe(global_user, port_file, stacked_dataframe)
         
@@ -1067,36 +1501,13 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
 
         Record_table, columns = GetHistory(global_user, port_file)
 
-        # if os.path.exists(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json"): 
-        #     f = open(ROOT_PATH + "/Analysis/Visualization/" + port_file + "/CorrectionHistory.json")
-        #     history = json.load(f)
-        #     columns = [{'name': col, 'id': col} for col in history_column]
-        #     if global_user in history:
-        #         return msg, stacked_fig, global_user, history[global_user], columns
-        #     else:
-        #         return msg, stacked_fig, global_user, [{}], columns
-        # else:
-        #     print("No history")
-        #     columns = [{'name': col, 'id': col} for col in history_column]
-        return msg, stacked_fig, global_user, Record_table, columns
+        return msg, stacked_fig, stacked_fig_img, global_user, Record_table, columns
     elif 'Output_file' in changed_id:
         msg = global_user + " has been downloaded"
-        return msg, dash.no_update, global_user, dash.no_update, dash.no_update
+        return msg, dash.no_update, dash.no_update, global_user, dash.no_update, dash.no_update
     else:
         msg = 'Not click any button yet'
-        return msg, dash.no_update, global_user, dash.no_update, dash.no_update
-
-@callback(
-    Output('visual_placeholder', 'children'),
-    Input('scatter-graph', 'relayoutData')
-)
-def RecordScatterLayout(scatter_relayout):
-    global scatter_layout
-    if scatter_relayout is not None:
-        if 'autosize' not in scatter_relayout: 
-            scatter_layout = scatter_relayout
-
-    return dash.no_update
+        return msg, dash.no_update, dash.no_update, global_user, dash.no_update, dash.no_update
 
 @callback(
     Output('download_file', 'data'),
@@ -1212,12 +1623,16 @@ def RecordBarChartLayout(stacked_relayout):
             stacked_layout = stacked_relayout
     return dash.no_update
 
-#Update the index
-@callback(Output('page-content', 'children'),
-        [Input('url', 'pathname')])
-def index_page(pathname):
-    print("index page name:", pathname)
-    return coding_layout
+@callback(
+    Output('placeholder-image', 'children'),
+    Input('stacked-bar-image', 'relayoutData')
+)
+def RecordBarChartLayoutImage(stacked_relayout):
+    global stacked_layout_img
+    if stacked_relayout is not None:
+        if 'autosize' not in stacked_relayout: 
+            stacked_layout_img = stacked_relayout
+    return dash.no_update
 
 if __name__ == '__main__':
     app.run_server(host='0.0.0.0', port=port_number, threaded=True, debug=True)
