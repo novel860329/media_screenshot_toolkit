@@ -96,10 +96,13 @@ def GetDataframe(global_user, port_file):
         scatter_df = scatter_df.drop(scatter_df[scatter_df.code_id == -2].index)
         scatter_df = scatter_df.drop(columns=['n_main', 'keyword', 'picture_number'])
         scatter_df['code_id'] = scatter_df['code_id'].apply(lambda x:int(x) + 1)
-        scatter_df['repeat'] = scatter_df['repeat'].apply(lambda x:int(x) + 1)
         scatter_df.reset_index(inplace=True,drop=True)
 
         stacked_dataframe = copy.deepcopy(scatter_df)
+        stacked_dataframe['repeat'] = 0
+        stacked_dataframe['typing'] = 0
+        stacked_dataframe['like'] = 0
+        stacked_dataframe['share'] = 0
         stacked_dataframe['detect_time'] = stacked_dataframe['images'].apply(lambda x:extract_time_from_answer(x))
         stacked_dataframe['row_index'] = stacked_dataframe.index
         stacked_dataframe['visible time'] = 0

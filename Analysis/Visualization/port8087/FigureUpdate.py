@@ -15,6 +15,13 @@ source = {'post':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/commen
         'like':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/like.png"),
         'share':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/share.png")}
 
+def extract_time_from_answer(answer):  
+#    print(answer)
+    temp = answer.split("-")
+    date = temp[1] + "/" + temp[2] + "/" + temp[3]
+    time = temp[4] + ":" + temp[5] + ":" + temp[6]
+    return date + " " + time
+
 def UpdateFigureLayout(stacked_fig, stacked_layout):
     if stacked_layout is None:
         stacked_fig.update_layout(
@@ -85,7 +92,7 @@ def CombineFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_l
         percent = row['percent']
         picture_number = row['picture_number']
         color = row['color']
-        detect_time = row['detect_time']
+        detect_time = extract_time_from_answer(row['images'])
         qid = row['qid']
         row_index = row['row_index']
 
@@ -163,7 +170,7 @@ def SplitFigUpdate(stacked_fig, stacked_dataframe, post_number, stacked_layout):
         percent = row['percent']
         picture_number = row['picture_number']
         color = row['color']
-        detect_time = row['detect_time']
+        detect_time = extract_time_from_answer(row['images'])
         qid = row['qid']
         row_index = row['row_index']
 
@@ -238,7 +245,7 @@ def EventFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_lay
         percent = row['percent']
         picture_number = row['picture_number']
         color = row['color']
-        detect_time = row['detect_time']
+        detect_time = extract_time_from_answer(row['images'])
         qid = row['qid']
         row_index = row['row_index']
 
@@ -304,15 +311,15 @@ def EventFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_lay
                             source=source[event],
                             xref="x",
                             yref="y",
-                            sizex=0.6,
-                            sizey=0.6,
+                            sizex=0.4,
+                            sizey=0.4,
                             xanchor="center",
                             yanchor="middle",
                             sizing="contain",
                             layer="above",
                             visible=True,
                         )
-                y_axis += 0.15
+                y_axis += 0.2
 
     stacked_fig = UpdateFigureLayout(stacked_fig, stacked_layout)
 

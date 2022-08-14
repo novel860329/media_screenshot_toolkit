@@ -47,7 +47,7 @@ def extract_app_name(images):
 def extract_time_from_answer(answer):  
 #    print(answer)
     temp = answer.split("-")
-    date = temp[1] + "-" + temp[2] + "-" + temp[3]
+    date = temp[1] + "/" + temp[2] + "/" + temp[3]
     time = temp[4] + ":" + temp[5] + ":" + temp[6]
     return date + " " + time
 
@@ -60,6 +60,7 @@ data_path = ROOT_PATH + "Analysis/Visualization/data/"
 # data_preprocess()
 
 global_user = 0
+metadata_table_col = ["Picture_no", "Time", "OCR result", "Event"]
 event_col = ['share', 'like', 'typing', 'news', 'comment', 'outer_link']
 event_map = {0: 'external link', 1: 'comment', 2: 'news', 3: 'typing', 4: 'like', 5: 'share'}
 Button_dict = {'Comment_button': ('comment', "Comment"), 'Click_button': ('outer_link', "External link"),
@@ -131,10 +132,10 @@ server = app.server
 # app.config.suppress_callback_exceptions = True
 # timeout = 60
 
-auth = dash_auth.BasicAuth(
-    app,
-    VALID_USERNAME_PASSWORD_PAIRS
-)
+# auth = dash_auth.BasicAuth(
+#     app,
+#     VALID_USERNAME_PASSWORD_PAIRS
+# )
 
 col_cate = {'app':["Facebook", "Instagram", "Youtube", "PTT", "Messenger", "LineChat","googleNews" ,"LineToday", "NewsApp" ,"Chrome","-1"], '新聞主題':['生活','運動', '娛樂', '政治', '健康','-1']}
 
@@ -192,7 +193,7 @@ coding_layout = html.Div(className="row", children=[
             html.Button('Typing', id='Typing_button', n_clicks=0, style={"margin-left": "10px"}),
             html.Button('Share', id='Share_button', n_clicks=0, style={"margin-left": "10px"}),     
         ]),            
-    ], style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
+    ], open=True, style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'}),
 
     html.Details([
         html.Summary('Instagram events'),
@@ -221,9 +222,6 @@ coding_layout = html.Div(className="row", children=[
         style={'display': 'inline-block', 'vertical-align':'top', "margin-left": "10px", 'margin-top': '5px'},
     ),
 
-    html.Div(
-        dcc.Link('Go to coding mode', href='/coding')
-    ,style={'display': 'none', 'vertical-align':'bottom','margin-left': '20px', 'margin-top': '10px'}),
     dcc.Loading(
         id="loading-1",
         type="default",
@@ -236,6 +234,60 @@ coding_layout = html.Div(className="row", children=[
         ,style={ 'width': '100%','margin-top': '10px'}),    
     ),
 
+    html.Div(
+       html.Div([
+                html.B("Images Metadata", id="post_num", style={'fontSize':16}),
+            ])
+        , style={'width': '20%', 'display': 'inline-block', 'margin-left': '10px', 'margin-top': '20px'}
+    ),
+    
+    html.Div([
+        html.Div(
+            dash_table.DataTable(id='hover_metadata',
+            data=[{metadata_table_col[0]: "", metadata_table_col[1]:"", metadata_table_col[2]: "", metadata_table_col[3]: ""} for i in range(5)],
+            columns=[{"name": i, "id": i} for i in metadata_table_col],
+            style_cell={
+                # 'overflow': 'hidden',
+                'textOverflow': 'ellipsis',
+                'fontSize':14,
+                # 'minWidth': '20px', 'width': '20px', 'maxWidth': '50px',
+                'maxWidth': '50px',
+                'textAlign': 'center'
+            },
+            css=[{
+                'selector': '.dash-spreadsheet td div',
+                'rule': '''
+                    line-height: 15px;
+                    max-height: 45px; min-height: 45px; height: 45px;
+                    display: block;
+                    overflow-y: hidden;
+                    margin-bottom: 5px;
+                    margin-top: 5px;
+                    font-weight: bold;
+                    font-family: sans-serif;
+                '''
+            },{'selector': '.dash-table-tooltip', 'rule': "white-space: pre-wrap;" }],
+            style_table={'minWidth': '100%', 'width': '100%', 'maxWidth': '100%', 'maxHeight': '600px'},
+            style_data={
+                'whiteSpace': 'normal'
+            },
+            tooltip_delay=0,
+            tooltip_duration=None,
+            style_data_conditional=[{'if': {'row_index': 2}, 'color': 'tomato'},
+                {'if': {'column_id': metadata_table_col[0]},'width': '20%'},
+                {'if': {'column_id': metadata_table_col[1]},'width': '15%'},
+                {'if': {'column_id': metadata_table_col[3]},'width': '15%'}], 
+            )
+        , style={'width': '100%', 'margin-left': '10px', 'display': 'inline-block'}),
+        # html.Div(html.P("", id = "post_content"), style={'width': '15%', "height": "60vh", "overflow": "scroll", 'margin-left': '10px', 'display': 'flex', 'flex-direction': 'row', 'flex':1, "margin-bottom": "15px",'fontSize':18}),
+    ]
+    ,style={'display': 'flex', 'flex-direction': 'row'}),  
+
+    html.Div([
+            html.B("Correct History", style={'fontSize':16}),
+        ]
+    , style={'width': '20%', 'display': 'inline-block', 'margin-left': '10px', 'margin-top': '20px'}),
+    
     html.Div([
         html.Div(
             dash_table.DataTable(id='correct_history',
@@ -251,9 +303,9 @@ coding_layout = html.Div(className="row", children=[
                 'whiteSpace': 'normal'
             },
         )
-        , style={'width': '50%', 'margin-left': '10px', 'display': 'inline-block'}),
-        html.Div(dcc.Markdown(s(description)), style={'width': '50%', "height": "500px", 'margin-left': '20px', 'display': 'inline-block', 'fontSize': 20})]
-    ,style={'display': 'flex', 'flex-direction': 'row',  "margin-bottom": "15px", "margin-top": "15px"}),  
+        , style={'width': '100%', 'margin-left': '10px', 'display': 'inline-block'})]
+        # html.Div(dcc.Markdown(s(description)), style={'width': '50%', "height": "500px", 'margin-left': '20px', 'display': 'inline-block', 'fontSize': 20})]
+    ,style={'display': 'flex', 'flex-direction': 'row',  "margin-bottom": "15px"}),  
 
     html.P(id='placeholder'),
     html.P(id='ph_for_select')
@@ -339,7 +391,7 @@ def draw_barchart(df, sliderrange, uid):
             percent = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['percent']
             picture_number = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['picture_number']
             color = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['color']
-            detect_time = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['detect_time']
+            detect_time = extract_time_from_answer(scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['images'])
             qid = scatter_dataframe[scatter_dataframe['row_index'] == row_index].iloc[0]['qid']
 
             shape = ""
@@ -425,7 +477,7 @@ def draw_barchart(df, sliderrange, uid):
 
     if sliderrange is None:
         figure_x = int(fig.layout['images'][0]['x'])
-        sliderrange = [0, figure_x / 20]
+        sliderrange = [0, 100]
 
     fig.update_layout(
         barmode="stack",
@@ -443,7 +495,7 @@ def draw_barchart(df, sliderrange, uid):
     )
 
     # fig.update_yaxes(showticklabels=True, range=[0, y_size + 5], scaleanchor="x", constrain="domain", constraintoward = "top", showgrid=False)
-    fig.update_yaxes(showticklabels=True, scaleanchor="x", showgrid=False)
+    fig.update_yaxes(showticklabels=False, scaleanchor="x", showgrid=False)
 
     fig.update(layout = go.Layout(margin=dict(t=0,r=0,b=0,l=0)))
 
@@ -467,6 +519,87 @@ def FindImgEvent(events):
 
     return shape
 
+@callback(
+    Output(component_id='hover_metadata', component_property='data'),
+    Output("hover_metadata", "tooltip_data"),
+    Input('stacked-bar', 'hoverData'),
+    Input('users-dropdown', 'value'),
+    [Input('button_result', 'children')])
+def update_image(stacked_hover, userid, button_result):
+    global global_user
+    changed_id = [p['prop_id'] for p in callback_context.triggered][0]
+    if 'users-dropdown' in changed_id:
+        return dash.no_update, dash.no_update
+
+    if stacked_hover is None:
+        return dash.no_update, dash.no_update
+
+    result = []
+    if "button_result" in changed_id or 'stacked-bar' in changed_id:
+        hoverData = stacked_hover
+        picture_number = int(hoverData['points'][0]['customdata'][4])
+
+    ### used for searching comment and outer_link value
+    cache = GetDataframe(global_user, port_file)
+
+    max_picture_number = int(cache['picture_number'].max())
+
+    picture_range = [0, 0]
+    if picture_number <= 2:
+        # print("picture_number smaller than 2")
+        picture_range[0] = 1
+        picture_range[1] = picture_number + 2
+    elif picture_number + 2 >= max_picture_number:
+        # print("picture_number larger than max")
+        picture_range[0] = picture_number - 2
+        picture_range[1] = max_picture_number
+    else:
+        # print("else")
+        picture_range[0] = picture_number - 2
+        picture_range[1] = picture_number + 2
+       
+    metadata_table = []
+    tool_tip = []
+    for i, pic_num in enumerate(range(picture_range[0], picture_range[1] + 1)):
+        picture = cache[cache['picture_number'] == pic_num]
+        img = picture.iloc[0]['images']
+        q_id = picture.iloc[0]['qid']
+        detect_time = extract_time_from_answer(img).split(" ")[1]
+
+        ocr_result = ""
+        x_dict = defaultdict(list)
+        for j, (index, row) in enumerate(picture.iterrows()):
+            if str(row['context']) == "nan":
+                content = ""
+            else:
+                content = row['context'].strip()
+            ocr_result += content
+        
+            shape = ""
+            for col in event_col:
+                shape = shape + str(row[col])           
+            shape = int(shape, 2) ### "6"
+            x_dict[pic_num].append(shape)
+        event = ""
+        for x_axis, shape_events in x_dict.items():
+            shape = FindImgEvent(shape_events)
+            shape_bin = bin(shape)[2:][::-1]
+            binary1_index = []
+            for k, binary in enumerate(shape_bin):
+                if binary == '1':
+                    binary1_index.append(k)
+            for k in range(len(binary1_index)):
+                if k == len(binary1_index) - 1:
+                    event = event + event_map[binary1_index[k]]
+                else:
+                    event = event + event_map[binary1_index[k]] + "&"
+        ocr_result = '     '.join(ocr_result.split("\n"))
+        data = {metadata_table_col[0]: pic_num, metadata_table_col[1]: detect_time, metadata_table_col[2]: ocr_result, metadata_table_col[3]: event}
+        metadata_table.append(data)
+        tool_tip.append({c:{'type': 'text', 'value': str(v)} for c, v in data.items()})
+    # print("-------------------------------------------------------------------")
+    return metadata_table, tool_tip
+    
 @callback(
     [Output('button_result', 'children'),
     Output('stacked-bar', 'figure'),
@@ -520,7 +653,7 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
 
         if stacked_layout is None:
             figure_x = int(stacked_fig.layout['images'][0]['x'])
-            sliderrange = [0, figure_x / 20]
+            sliderrange = [0, 100]
             stacked_fig.update_layout(
                 xaxis=dict(
                     rangeslider=dict(visible=True, thickness=0.1),
@@ -542,7 +675,7 @@ def ButtonClick(uid, discuss_text, merge_btn, delete_btn, split_btn, discuss_btn
             )
         else:
             figure_x = int(stacked_fig.layout['images'][0]['x'])
-            sliderrange = [0, figure_x / 20]
+            sliderrange = [0, 100]
             stacked_fig.update_layout(
                 xaxis=dict(        
                     rangeslider=dict(visible=True, thickness=0.1),

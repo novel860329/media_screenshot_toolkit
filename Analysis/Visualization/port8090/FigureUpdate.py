@@ -14,13 +14,21 @@ source = {'post':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/commen
         'share':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/share.png")}
 
 image_width = 5
+
+def extract_time_from_answer(answer):  
+#    print(answer)
+    temp = answer.split("-")
+    date = temp[1] + "/" + temp[2] + "/" + temp[3]
+    time = temp[4] + ":" + temp[5] + ":" + temp[6]
+    return date + " " + time
+
 def UpdateFigureLayout(stacked_fig, stacked_layout):
     if stacked_layout is None:
         figure_x = int(stacked_fig.layout['images'][0]['x']),
         stacked_fig.update_layout(
             xaxis=dict(
             rangeslider=dict(visible=True, thickness=0.1),
-            range = [0, figure_x / 20],
+            range = [0, 100],
             type="linear",
             scaleanchor="y",
             showgrid=False
@@ -42,7 +50,7 @@ def UpdateFigureLayout(stacked_fig, stacked_layout):
         stacked_fig.update_layout(
             xaxis=dict(
                 rangeslider=dict(visible=True),
-                range = [0, figure_x / 20],
+                range = [0, 100],
                 type="linear",
                 scaleanchor="y",
                 showgrid=False
@@ -94,7 +102,7 @@ def CombineFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_l
         percent = row['percent']
         picture_number = row['picture_number']
         color = row['color']
-        detect_time = row['detect_time']
+        detect_time = extract_time_from_answer(row['images'])
         qid = row['qid']
         row_index = row['row_index']
         shape = ""
@@ -173,7 +181,7 @@ def SplitFigUpdate(stacked_fig, stacked_dataframe, post_number, stacked_layout):
         percent = row['percent']
         picture_number = row['picture_number']
         color = row['color']
-        detect_time = row['detect_time']
+        detect_time = extract_time_from_answer(row['images'])
         qid = row['qid']
         row_index = row['row_index']
 
@@ -256,7 +264,7 @@ def EventFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_lay
         percent = row['percent']
         picture_number = row['picture_number']
         color = row['color']
-        detect_time = row['detect_time']
+        detect_time = extract_time_from_answer(row['images'])
         qid = row['qid']
         row_index = row['row_index']
 
