@@ -20,6 +20,7 @@ import os
 import cv2
 import base64
 import json
+import plotly.express as px
 from CreateImage import draw_visible_area
 from FigureUpdate import CombineFigUpdate
 from FigureUpdate import DeleteFigUpdate
@@ -138,6 +139,8 @@ server = app.server
 # )
 
 col_cate = {'app':["Facebook", "Instagram", "Youtube", "PTT", "Messenger", "LineChat","googleNews" ,"LineToday", "NewsApp" ,"Chrome","-1"], '新聞主題':['生活','運動', '娛樂', '政治', '健康','-1']}
+
+repeat_post_color = px.colors.qualitative.Vivid
 
 for uid in User_data:
     try:
@@ -266,7 +269,7 @@ coding_layout = html.Div(className="row", children=[
                     font-weight: bold;
                     font-family: sans-serif;
                 '''
-            },{'selector': '.dash-table-tooltip', 'rule': "white-space: pre-wrap;" }],
+            },{'selector': '.dash-table-tooltip', 'rule': "white-space: pre-wrap;"}],
             style_table={'minWidth': '100%', 'width': '100%', 'maxWidth': '100%', 'maxHeight': '600px'},
             style_data={
                 'whiteSpace': 'normal'
@@ -278,8 +281,9 @@ coding_layout = html.Div(className="row", children=[
                 {'if': {'column_id': metadata_table_col[1]},'width': '15%'},
                 {'if': {'column_id': metadata_table_col[3]},'width': '15%'}], 
             )
-        , style={'width': '100%', 'margin-left': '10px', 'display': 'inline-block'}),
+        , style={'width': '30%', 'margin-left': '10px', 'display': 'inline-block'}),
         # html.Div(html.P("", id = "post_content"), style={'width': '15%', "height": "60vh", "overflow": "scroll", 'margin-left': '10px', 'display': 'flex', 'flex-direction': 'row', 'flex':1, "margin-bottom": "15px",'fontSize':18}),
+        html.Div(id='img-content', style={"margin-bottom": "15px", "overflowY": "scroll", 'flex':5, 'text-align':'center'})
     ]
     ,style={'display': 'flex', 'flex-direction': 'row'}),  
 
@@ -356,6 +360,16 @@ def draw_barchart(df, sliderrange, uid):
 
     fig = go.Figure()
     
+    ### assign repeat post group color
+    repeat_post = scatter_dataframe['repeat'].unique().tolist()
+    repeat_post.remove(0)
+    repeat_post = sorted(repeat_post)
+    post_color = {}
+
+    for i, repeat_row in enumerate(repeat_post):
+        if repeat_row not in post_color:
+            post_color[repeat_row] = repeat_post_color[i % len(repeat_post_color)]
+
     ### read image and display
     uid = uid.split("-")[0] if "-" in uid else uid
     temp_path = os.listdir(ROOT_PATH + "/" + uid)
@@ -364,7 +378,7 @@ def draw_barchart(df, sliderrange, uid):
     for i, image in enumerate(images):
         q_id = scatter_dataframe[scatter_dataframe['images'] == image].iloc[0]['qid']
         picture_number = scatter_dataframe[scatter_dataframe['images'] == image].iloc[0]['picture_number'] 
-        img = Image.open(ROOT_PATH + uid + "/" + temp_path[0] + "/NewInterval/" + str(q_id) + "/" + image)
+        img = Image.open(ROOT_PATH + uid + "/" + temp_path[0] + "/LowQuality/" + str(q_id) + "/" + image)
         width, height = img.size
         y_size = height * image_width / width
         x_axis = picture_number + (int(picture_number) - 1) * image_width
@@ -422,7 +436,7 @@ def draw_barchart(df, sliderrange, uid):
                 x=[x_axis],
                 marker=dict(color="rgba(0,0,0,0)",line=dict(
                     color=color,
-                    width=3.5
+                    width=4
                 )),
                 width=[image_width],
                 customdata=[[code_id, detect_time, qid, row_index, picture_number, event, round(percent, 2)]],
@@ -438,6 +452,72 @@ def draw_barchart(df, sliderrange, uid):
                 unselected=dict(marker=dict(opacity=0.5))
             )
             fig.add_trace(bar)
+
+    repeat_post_yaxis = defaultdict(list)
+    repeat_yaxis = defaultdict(int)
+    line_height = y_size + 1.5 - y_size*0.13
+    for row, color in post_color.items():
+        code_id = scatter_dataframe[scatter_dataframe['row_index'] == row].iloc[0]['code_id']
+        repeat_df = scatter_dataframe[scatter_dataframe['code_id'] == code_id]
+
+        repeat_df_appeared = scatter_dataframe[scatter_dataframe['repeat'] == row]
+        code_id_appeared = scatter_dataframe[scatter_dataframe['repeat'] == row].iloc[0]['code_id']
+
+        yaxis_repeat = []
+        yaxis_repeat_appeared = []
+        for j, df_row in repeat_df.iterrows(): 
+            picture_number = df_row['picture_number']
+            yaxis_repeat.append(int(picture_number))
+        yaxis_repeat = list(set(yaxis_repeat))
+
+        for j, df_row in repeat_df_appeared.iterrows(): 
+            picture_number = df_row['picture_number']
+            yaxis_repeat_appeared.append(int(picture_number))
+        yaxis_repeat_appeared = list(set(yaxis_repeat_appeared))
+
+        for yaxis in yaxis_repeat:
+            repeat_yaxis[yaxis] += 1
+            if repeat_yaxis[yaxis] >= 2:
+                repeat_post_yaxis[code_id] = line_height + 0.3 * (repeat_yaxis[yaxis] - 1)
+                break
+            repeat_post_yaxis[code_id] = line_height
+
+        for yaxis in yaxis_repeat_appeared:
+            repeat_yaxis[yaxis] += 1
+            if repeat_yaxis[yaxis] >= 2:
+                repeat_post_yaxis[code_id_appeared] = line_height + 0.3 * (repeat_yaxis[yaxis] - 1)
+                break
+            repeat_post_yaxis[code_id_appeared] = line_height
+
+    for code_id, y_axis in repeat_post_yaxis.items():
+        repeat_df = scatter_dataframe[scatter_dataframe['code_id'] == code_id]
+        repeat = scatter_dataframe[scatter_dataframe['code_id'] == code_id].iloc[0]['repeat']
+        if repeat == 0:
+            row = scatter_dataframe[scatter_dataframe['code_id'] == code_id].iloc[0]['row_index']
+        else:
+            row = repeat
+        img = repeat_df.iloc[0]['images']
+        detect_time = extract_time_from_answer(img)
+        qid = repeat_df.iloc[0]['qid']
+        row_index = repeat_df.iloc[0]['row_index']
+        picture_number = repeat_df.iloc[0]['picture_number']
+        x_max = repeat_df['picture_number'].max() + (int(repeat_df['picture_number'].max()) - 1) * image_width - image_width / 2
+        x_min = repeat_df['picture_number'].min() + (int(repeat_df['picture_number'].min()) - 1) * image_width - image_width / 2
+
+        line = go.Scatter(x=[x_min, x_max + image_width + 1], y=[y_axis, y_axis],
+                line=dict(color=post_color[row], width=4),
+                name="-1",
+                customdata=[[code_id, detect_time, qid, row_index, picture_number] for i in range(2)],
+                mode='lines',
+                hovertemplate="<br>".join([
+                    "Repeat Post",
+                    "detect time=%{customdata[1]}",
+                    "questionnaire id=%{customdata[2]}",
+                    "row index=%{customdata[3]}", 
+                    "picture number=%{customdata[4]}", 
+                    ]),
+                )
+        fig.add_trace(line)
 
     x_dict = defaultdict(list)
     for j, row in scatter_dataframe.iterrows():
@@ -465,18 +545,17 @@ def draw_barchart(df, sliderrange, uid):
                         source=source[event],
                         xref="x",
                         yref="y",
-                        sizex=0.5,
-                        sizey=0.5,
+                        sizex=0.4,
+                        sizey=0.4,
                         xanchor="center",
                         yanchor="middle",
                         sizing="contain",
                         layer="above",
                         visible=True,
                     )
-                y_axis += 0.5
+                y_axis += 0.7
 
     if sliderrange is None:
-        figure_x = int(fig.layout['images'][0]['x'])
         sliderrange = [0, 100]
 
     fig.update_layout(
@@ -520,6 +599,7 @@ def FindImgEvent(events):
     return shape
 
 @callback(
+    Output('img-content', 'children'),
     Output(component_id='hover_metadata', component_property='data'),
     Output("hover_metadata", "tooltip_data"),
     Input('stacked-bar', 'hoverData'),
@@ -529,10 +609,10 @@ def update_image(stacked_hover, userid, button_result):
     global global_user
     changed_id = [p['prop_id'] for p in callback_context.triggered][0]
     if 'users-dropdown' in changed_id:
-        return dash.no_update, dash.no_update
+        return dash.no_update, dash.no_update, dash.no_update
 
     if stacked_hover is None:
-        return dash.no_update, dash.no_update
+        return dash.no_update, dash.no_update, dash.no_update
 
     result = []
     if "button_result" in changed_id or 'stacked-bar' in changed_id:
@@ -557,10 +637,21 @@ def update_image(stacked_hover, userid, button_result):
         # print("else")
         picture_range[0] = picture_number - 2
         picture_range[1] = picture_number + 2
-       
+    
+    p_num = 0
+    bias = 0
+    if picture_range[1] == 3:
+        bias = 2
+        for i in range(bias):
+            result.append(html.Img(id= "img"+str(i)))
+    elif picture_range[1] == 4:
+        bias = 1
+        for i in range(bias):
+            result.append(html.Img(id= "img"+str(i)))        
     metadata_table = []
     tool_tip = []
     for i, pic_num in enumerate(range(picture_range[0], picture_range[1] + 1)):
+        p_num += 1
         picture = cache[cache['picture_number'] == pic_num]
         img = picture.iloc[0]['images']
         q_id = picture.iloc[0]['qid']
@@ -593,13 +684,79 @@ def update_image(stacked_hover, userid, button_result):
                     event = event + event_map[binary1_index[k]]
                 else:
                     event = event + event_map[binary1_index[k]] + "&"
+
+        code_id = cache[(cache['picture_number'] == pic_num) & (cache['biggest'] == 1)].iloc[0]['code_id']
+        userid = userid.split("-")[0] if "-" in userid else userid
+
+        temp_path = os.listdir(ROOT_PATH + "/" + userid)
+        if cache.loc[(cache["images"] == img) & (cache["code_id"] == code_id), "comment"].shape[0] == 0:
+            return dash.no_update
+        # print(ROOT_PATH + userid + "/" + temp_path[0] + "/NewInterval/" + str(q_id) + "/" + img)
+        img_cv2 = cv2.imread(ROOT_PATH + userid + "/" + temp_path[0] + "/NewInterval/" + str(q_id) + "/" + img)
+        # img_cv2 = draw_visible_area(img_cv2)
+        _, buffer = cv2.imencode('.jpg', img_cv2)
+        img_64 = base64.b64encode(buffer).decode('utf-8')
+
+        if pic_num == picture_number:
+            width = "18%"
+        else:
+            width = "15%"
+
         ocr_result = '     '.join(ocr_result.split("\n"))
+
         data = {metadata_table_col[0]: pic_num, metadata_table_col[1]: detect_time, metadata_table_col[2]: ocr_result, metadata_table_col[3]: event}
         metadata_table.append(data)
         tool_tip.append({c:{'type': 'text', 'value': str(v)} for c, v in data.items()})
+        result.append(html.Img(id= "img"+str(i + bias), src='data:image/jpg;base64,{}'.format(img_64), style={'width': width, 'margin-right': '20px', 'vertical-align':'top'}))    
+    if picture_range[0] == max_picture_number - 2:
+        for i in range(3, 5):
+            result.append(html.Img(id= "img"+str(i)))
+    elif picture_range[0] == max_picture_number - 3:
+        for i in range(4, 5):
+            result.append(html.Img(id= "img"+str(i)))
     # print("-------------------------------------------------------------------")
-    return metadata_table, tool_tip
-    
+    return result, metadata_table, tool_tip
+
+@app.callback(Output('img0', 'style'),
+    Output('img1', 'style'),
+    Output('img2', 'style'),
+    Output('img3', 'style'),
+    Output('img4', 'style'),
+    Input('img0', 'n_clicks'),
+    Input('img1', 'n_clicks'),
+    Input('img2', 'n_clicks'),
+    Input('img3', 'n_clicks'),
+    Input('img4', 'n_clicks')
+    )
+def display_image(n_click0, n_click1, n_click2, n_click3, n_click4):
+    changed_id = [p['prop_id'] for p in callback_context.triggered][0]
+    if 'img0' in changed_id:
+        if n_click0 % 2 == 0:
+            return {'width': "15%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+        else:
+            return {'width': "30%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+    elif 'img1' in changed_id:
+        if n_click1 % 2 == 0:
+            return dash.no_update, {'width': "15%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update, dash.no_update, dash.no_update
+        else:
+            return dash.no_update, {'width': "30%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update, dash.no_update, dash.no_update
+    elif 'img2' in changed_id:
+        if n_click2 % 2 == 0:
+            return dash.no_update, dash.no_update, {'width': "18%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update, dash.no_update
+        else:
+            return dash.no_update, dash.no_update, {'width': "30%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update, dash.no_update
+    elif 'img3' in changed_id:
+        if n_click3 % 2 == 0:
+            return dash.no_update, dash.no_update, dash.no_update, {'width': "15%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update
+        else:
+            return dash.no_update, dash.no_update, dash.no_update, {'width': "30%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update
+    elif 'img4' in changed_id:
+        if n_click4 % 2 == 0:
+            return dash.no_update, dash.no_update, dash.no_update, dash.no_update, {'width': "15%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}
+        else:
+            return dash.no_update, dash.no_update, dash.no_update, dash.no_update, {'width': "30%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}
+    return dash.no_update
+
 @callback(
     [Output('button_result', 'children'),
     Output('stacked-bar', 'figure'),

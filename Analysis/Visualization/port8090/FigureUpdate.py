@@ -15,6 +15,7 @@ source = {'post':Image.open(ROOT_PATH + "Analysis/Visualization/EventIcon/commen
 
 image_width = 5
 
+
 def extract_time_from_answer(answer):  
 #    print(answer)
     temp = answer.split("-")
@@ -331,15 +332,15 @@ def EventFigUpdate(stacked_fig, stacked_dataframe, Select_row_index, stacked_lay
                             source=source[event],
                             xref="x",
                             yref="y",
-                            sizex=0.5,
-                            sizey=0.5,
+                            sizex=0.4,
+                            sizey=0.4,
                             xanchor="center",
                             yanchor="middle",
                             sizing="contain",
                             layer="above",
                             visible=True,
                         )
-                y_axis += 0.5
+                y_axis += 0.7
 
     stacked_fig = UpdateFigureLayout(stacked_fig, stacked_layout)
 

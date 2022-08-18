@@ -13,7 +13,7 @@ import plotly.graph_objs as go
 import pandas as pd
 import flask
 import datetime
-from collections import defaultdict
+from collections import defaultdict, Counter
 from textwrap import dedent as s
 from PIL import Image
 import plotly.express as px
@@ -283,7 +283,7 @@ coding_layout = html.Div(className="row", children=[
                 )
             , style={'width': '30%', 'margin-left': '10px', 'display': 'inline-block'}),
             # html.Div(html.P("", id = "post_content"), style={'width': '15%', "height": "60vh", "overflow": "scroll", 'margin-left': '10px', 'display': 'flex', 'flex-direction': 'row', 'flex':1, "margin-bottom": "15px",'fontSize':18}),
-            html.Div(id='img-content', style={"margin-bottom": "15px", "overflowY": "scroll", 'flex':5, 'text-align':'center', 'maxHeight': '600px'})
+            html.Div(id='img-content', style={"margin-bottom": "15px", "overflowY": "scroll", 'flex':5, 'text-align':'center'})
         ]
     ,style={'display': 'flex', 'flex-direction': 'row'}),        
     html.Div([
@@ -364,8 +364,8 @@ def draw_barchart(df, sliderrange):
     repeat_post = sorted(repeat_post)
     post_color = {}
            
-    repeat_rows = list(dict.fromkeys(scatter_dataframe['repeat'].tolist()))
-    for i, repeat_row in enumerate(repeat_rows):
+    # repeat_rows = list(dict.fromkeys(scatter_dataframe['repeat'].tolist()))
+    for i, repeat_row in enumerate(repeat_post):
         if repeat_row not in post_color:
             post_color[repeat_row] = repeat_post_color[i % len(repeat_post_color)]
 
@@ -439,44 +439,114 @@ def draw_barchart(df, sliderrange):
             fig.add_trace(top_bar)
 
         ### repeat post color line
-        if repeat != 0:
-            _id = scatter_dataframe[scatter_dataframe['row_index'] == repeat].iloc[0]['code_id']
-            read_time = len(scatter_dataframe[scatter_dataframe['code_id'] == _id])
-            repeat_time = extract_time_from_answer(scatter_dataframe[scatter_dataframe['code_id'] == _id].iloc[read_time//2]['images'])
-            line = go.Scatter(x=[int(picture_number), int(picture_number) + 1], y=[1.45, 1.45],
-                    line=dict(color=post_color[repeat], width=4),
-                    name="-1",
-                    customdata=[[code_id, detect_time, qid, row_index, picture_number, repeat_time] for i in range(2)],
-                    mode='lines',
-                    hovertemplate="<br>".join([
-                        "This post has been appeared at %{customdata[5]}",
-                        "detect time=%{customdata[1]}",
-                        "questionnaire id=%{customdata[2]}",
-                        "row index=%{customdata[3]}", 
-                        "picture number=%{customdata[4]}", 
-                        ]),
-                    )
-            fig.add_trace(line)
+        # if repeat != 0:
+        #     _id = scatter_dataframe[scatter_dataframe['row_index'] == repeat].iloc[0]['code_id']
+        #     repeat_time = extract_time_from_answer(scatter_dataframe[scatter_dataframe['code_id'] == _id].iloc[0]['images'])
+        #     line = go.Scatter(x=[int(picture_number), int(picture_number) + 1], y=[1.45, 1.45],
+        #             line=dict(color=post_color[repeat], width=4),
+        #             name="-1",
+        #             customdata=[[code_id, detect_time, qid, row_index, picture_number, repeat_time] for i in range(2)],
+        #             mode='lines',
+        #             hovertemplate="<br>".join([
+        #                 "This post has been appeared at %{customdata[5]}",
+        #                 "detect time=%{customdata[1]}",
+        #                 "questionnaire id=%{customdata[2]}",
+        #                 "row index=%{customdata[3]}", 
+        #                 "picture number=%{customdata[4]}", 
+        #                 ]),
+        #             )
+        #     fig.add_trace(line)
 
         prev_img = img
 
-    # for row, color in post_color.items():
-    #     code_id = scatter_dataframe[scatter_dataframe['row_index'] == row].iloc[0]['code_id']
+    repeat_post_yaxis = defaultdict(list)
+    repeat_yaxis = defaultdict(int)
+    line_height = 1.45
+    for row, color in post_color.items():
+        # print(row, color)
+        code_id = scatter_dataframe[scatter_dataframe['row_index'] == row].iloc[0]['code_id']
+        repeat_df = scatter_dataframe[scatter_dataframe['code_id'] == code_id]
+
+        repeat_df_appeared = scatter_dataframe[scatter_dataframe['repeat'] == row]
+        code_id_appeared = scatter_dataframe[scatter_dataframe['repeat'] == row].iloc[0]['code_id']
+        # print(code_id, code_id_appeared)
+
+        yaxis_repeat = []
+        yaxis_repeat_appeared = []
+        for j, df_row in repeat_df.iterrows(): 
+            picture_number = df_row['picture_number']
+            yaxis_repeat.append(int(picture_number))
+        yaxis_repeat = list(set(yaxis_repeat))
+
+        for j, df_row in repeat_df_appeared.iterrows(): 
+            picture_number = df_row['picture_number']
+            yaxis_repeat_appeared.append(int(picture_number))
+        yaxis_repeat_appeared = list(set(yaxis_repeat_appeared))
+
+        for yaxis in yaxis_repeat:
+            repeat_yaxis[yaxis] += 1
+            if repeat_yaxis[yaxis] >= 2:
+                repeat_post_yaxis[code_id] = line_height + 0.2 * (repeat_yaxis[yaxis] - 1)
+                break
+            repeat_post_yaxis[code_id] = line_height
+
+        for yaxis in yaxis_repeat_appeared:
+            repeat_yaxis[yaxis] += 1
+            if repeat_yaxis[yaxis] >= 2:
+                repeat_post_yaxis[code_id_appeared] = line_height + 0.2 * (repeat_yaxis[yaxis] - 1)
+                break
+            repeat_post_yaxis[code_id_appeared] = line_height
+
+    for code_id, y_axis in repeat_post_yaxis.items():
+        repeat_df = scatter_dataframe[scatter_dataframe['code_id'] == code_id]
+        repeat = scatter_dataframe[scatter_dataframe['code_id'] == code_id].iloc[0]['repeat']
+        if repeat == 0:
+            row = scatter_dataframe[scatter_dataframe['code_id'] == code_id].iloc[0]['row_index']
+        else:
+            row = repeat
+        
+        img = repeat_df.iloc[0]['images']
+        detect_time = extract_time_from_answer(img)
+        qid = repeat_df.iloc[0]['qid']
+        row_index = repeat_df.iloc[0]['row_index']
+        picture_number = repeat_df.iloc[0]['picture_number']
+        # print(code_id, repeat, row, row_index)
+        line = go.Scatter(x=[repeat_df['picture_number'].min(), repeat_df['picture_number'].max() + 1], y=[y_axis, y_axis],
+                line=dict(color=post_color[row], width=4),
+                name="-1",
+                customdata=[[code_id, detect_time, qid, row_index, picture_number] for i in range(2)],
+                mode='lines',
+                hovertemplate="<br>".join([
+                    "Repeat Post",
+                    "detect time=%{customdata[1]}",
+                    "questionnaire id=%{customdata[2]}",
+                    "row index=%{customdata[3]}", 
+                    "picture number=%{customdata[4]}", 
+                    ]),
+                )
+        fig.add_trace(line)
+    
+    # for code_id, y_axis in repeated_post_yaxis.items():
     #     repeat_df = scatter_dataframe[scatter_dataframe['code_id'] == code_id]
-    #     print(row, code_id, repeat_df)
+    #     row = scatter_dataframe[scatter_dataframe['code_id'] == code_id].iloc[0]['row_index']
     #     for j, df_row in repeat_df.iterrows(): 
     #         img = df_row['images']
     #         detect_time = extract_time_from_answer(img)
     #         qid = df_row['qid']
     #         row_index = df_row['row_index']
     #         picture_number = df_row['picture_number']
-    #         line = go.Scatter(x=[int(picture_number), int(picture_number) + 1], y=[1.45, 1.45],
-    #                 line=dict(color=post_color[row], width=4),
+    #         repeat = df_row['repeat']
+
+    #         _id = scatter_dataframe[scatter_dataframe['row_index'] == repeat].iloc[0]['code_id']
+    #         repeat_time = extract_time_from_answer(scatter_dataframe[scatter_dataframe['code_id'] == _id].iloc[0]['images'])
+
+    #         line = go.Scatter(x=[int(picture_number), int(picture_number) + 1], y=[y_axis, y_axis],
+    #                 line=dict(color=post_color[repeat], width=4),
     #                 name="-1",
-    #                 customdata=[[code_id, detect_time, qid, row_index, picture_number] for i in range(2)],
+    #                 customdata=[[code_id, detect_time, qid, row_index, picture_number, repeat_time] for i in range(2)],
     #                 mode='lines',
     #                 hovertemplate="<br>".join([
-    #                     "This post will appear later",
+    #                     "This post has been appeared at %{customdata[5]}",
     #                     "detect time=%{customdata[1]}",
     #                     "questionnaire id=%{customdata[2]}",
     #                     "row index=%{customdata[3]}", 
@@ -484,6 +554,53 @@ def draw_barchart(df, sliderrange):
     #                     ]),
     #                 )
     #         fig.add_trace(line)
+
+
+    # for row, color in post_color.items():
+    #     code_id = scatter_dataframe[scatter_dataframe['row_index'] == row].iloc[0]['code_id']
+    #     img = scatter_dataframe[scatter_dataframe['code_id'] == code_id].iloc[0]['images']
+    #     detect_time = extract_time_from_answer(img)
+    #     qid = scatter_dataframe[scatter_dataframe['code_id'] == code_id].iloc[0]['qid']
+    #     row_index = scatter_dataframe[scatter_dataframe['code_id'] == code_id].iloc[0]['row_index']
+    #     picture_number = scatter_dataframe[scatter_dataframe['code_id'] == code_id].iloc[0]['picture_number']
+
+    #     line = go.Scatter(x=[int(picture_number) + 0.4], y=[1.45],
+    #             marker=dict(size=10, color=post_color[row]),
+    #             name="-1",
+    #             customdata=[[code_id, detect_time, qid, row_index, picture_number]],
+    #             mode='markers',
+    #             hovertemplate="<br>".join([
+    #                 "This post will appear again later",
+    #                 "detect time=%{customdata[1]}",
+    #                 "questionnaire id=%{customdata[2]}",
+    #                 "row index=%{customdata[3]}", 
+    #                 "picture number=%{customdata[4]}", 
+    #                 ]),
+    #             )
+    #     fig.add_trace(line)
+
+    #     repeat_time = detect_time
+    #     repeat_df = scatter_dataframe[scatter_dataframe['repeat'] == row]
+    #     img = repeat_df[repeat_df['repeat'] == row].iloc[0]['images']
+    #     detect_time = extract_time_from_answer(img)
+    #     qid = repeat_df[repeat_df['repeat'] == row].iloc[0]['qid']
+    #     row_index = repeat_df[repeat_df['repeat'] == row].iloc[0]['row_index']
+    #     picture_number = repeat_df[repeat_df['repeat'] == row].iloc[0]['picture_number']
+
+    #     line = go.Scatter(x=[int(picture_number) + 0.4], y=[1.45],
+    #             marker=dict(size=10, color=post_color[row]),
+    #             name="-1",
+    #             customdata=[[code_id, detect_time, qid, row_index, picture_number, repeat_time]],
+    #             mode='markers',
+    #             hovertemplate="<br>".join([
+    #                 "This post has been appeared at %{customdata[5]}",
+    #                 "detect time=%{customdata[1]}",
+    #                 "questionnaire id=%{customdata[2]}",
+    #                 "row index=%{customdata[3]}", 
+    #                 "picture number=%{customdata[4]}", 
+    #                 ]),
+    #             )
+    #     fig.add_trace(line)
 
     x_dict = defaultdict(list)
     for j, row in scatter_dataframe.iterrows():
@@ -511,8 +628,8 @@ def draw_barchart(df, sliderrange):
                         source=source[event],
                         xref="x",
                         yref="y",
-                        sizex=0.4,
-                        sizey=0.4,
+                        sizex=0.3,
+                        sizey=0.3,
                         xanchor="center",
                         yanchor="middle",
                         sizing="contain",
@@ -571,7 +688,7 @@ def draw_barchart(df, sliderrange):
         dragmode='select'
     )
 
-    fig.update_yaxes(showticklabels=False, range=[0,1.5])
+    fig.update_yaxes(showticklabels=False, range=[0,1.8])
     fig.update(layout = go.Layout(margin=dict(t=0,r=0,b=0,l=0)))
     qid_list = scatter_dataframe['qid'].tolist()
     post_list = scatter_dataframe['picture_number'].tolist()
@@ -755,27 +872,27 @@ def display_image(n_click0, n_click1, n_click2, n_click3, n_click4):
         if n_click0 % 2 == 0:
             return {'width': "15%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update, dash.no_update, dash.no_update, dash.no_update
         else:
-            return {'width': "20%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update, dash.no_update, dash.no_update, dash.no_update
+            return {'width': "30%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update, dash.no_update, dash.no_update, dash.no_update
     elif 'img1' in changed_id:
         if n_click1 % 2 == 0:
             return dash.no_update, {'width': "15%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update, dash.no_update, dash.no_update
         else:
-            return dash.no_update, {'width': "20%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update, dash.no_update, dash.no_update
+            return dash.no_update, {'width': "30%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update, dash.no_update, dash.no_update
     elif 'img2' in changed_id:
         if n_click2 % 2 == 0:
             return dash.no_update, dash.no_update, {'width': "18%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update, dash.no_update
         else:
-            return dash.no_update, dash.no_update, {'width': "20%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update, dash.no_update
+            return dash.no_update, dash.no_update, {'width': "30%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update, dash.no_update
     elif 'img3' in changed_id:
         if n_click3 % 2 == 0:
             return dash.no_update, dash.no_update, dash.no_update, {'width': "15%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update
         else:
-            return dash.no_update, dash.no_update, dash.no_update, {'width': "20%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update
+            return dash.no_update, dash.no_update, dash.no_update, {'width': "30%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}, dash.no_update
     elif 'img4' in changed_id:
         if n_click4 % 2 == 0:
             return dash.no_update, dash.no_update, dash.no_update, dash.no_update, {'width': "15%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}
         else:
-            return dash.no_update, dash.no_update, dash.no_update, dash.no_update, {'width': "20%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}
+            return dash.no_update, dash.no_update, dash.no_update, dash.no_update, {'width': "30%", 'margin-right': '40px', 'margin-bottom': '20px', 'vertical-align':'top'}
     return dash.no_update
 
 @callback(

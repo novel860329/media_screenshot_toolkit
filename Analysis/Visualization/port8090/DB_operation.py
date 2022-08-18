@@ -91,7 +91,6 @@ def GetDataframe(global_user, port_file):
         scatter_df.reset_index(inplace=True,drop=True)
 
         stacked_dataframe = copy.deepcopy(scatter_df)
-        stacked_dataframe['repeat'] = 0
         stacked_dataframe['typing'] = 0
         stacked_dataframe['like'] = 0
         stacked_dataframe['share'] = 0
